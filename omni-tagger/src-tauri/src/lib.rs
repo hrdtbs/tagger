@@ -1,9 +1,7 @@
 mod tagger;
 
 use base64::Engine;
-use image::ImageFormat;
 use screenshots::Screen;
-use std::io::Cursor;
 use std::sync::Mutex;
 use std::time::Instant;
 use tauri::{
@@ -11,13 +9,15 @@ use tauri::{
     tray::TrayIconBuilder,
     Emitter, Manager, State,
 };
-use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState};
+use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState, Shortcut};
+use crate::tagger::Tagger;
+use image::ImageEncoder; // Import ImageEncoder trait
 
 struct AppState {
     last_capture: Mutex<Option<Vec<u8>>>,
+    tagger: Mutex<Option<Tagger>>,
 }
 
-// Learn more about Tauri commands at https://tauri.app/develop/calling-rust/
 #[tauri::command]
 fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
@@ -26,14 +26,22 @@ fn greet(name: &str) -> String {
 #[tauri::command]
 async fn capture_screen(state: State<'_, AppState>) -> Result<String, String> {
     let start = Instant::now();
-    let screens = Screen::all().map_err(|e| e.to_string())?;
 
-    // For simplicity, we capture the primary screen or the first one.
+    let screens = Screen::all();
+
     if let Some(screen) = screens.first() {
-        let image = screen.capture().map_err(|e| e.to_string())?;
-        let buffer = image.to_png().map_err(|e| e.to_string())?;
+        let image = screen.capture().ok_or("Failed to capture screen")?;
 
-        // Save to state
+        // Manual PNG encoding
+        let width = image.width();
+        let height = image.height();
+        let rgba = image.buffer();
+
+        let mut buffer = Vec::new();
+        image::codecs::png::PngEncoder::new(&mut buffer)
+            .write_image(rgba, width, height, image::ColorType::Rgba8)
+            .map_err(|e| e.to_string())?;
+
         *state.last_capture.lock().map_err(|e| e.to_string())? = Some(buffer.clone());
 
         let b64 = base64::engine::general_purpose::STANDARD.encode(&buffer);
@@ -56,22 +64,22 @@ async fn process_selection(
     let guard = state.last_capture.lock().map_err(|e| e.to_string())?;
     let data = guard.as_ref().ok_or("No capture found")?;
 
-    // Decode image
     let img = image::load_from_memory(data).map_err(|e| e.to_string())?;
-
-    // Crop
     let cropped = img.crop_imm(x, y, w, h);
 
-    // Convert back to bytes for tagger (simulate)
-    let mut cropped_bytes = Vec::new();
-    cropped
-        .write_to(&mut Cursor::new(&mut cropped_bytes), ImageFormat::Png)
-        .map_err(|e| e.to_string())?;
+    // Tagger inference
+    let mut tagger_guard = state.tagger.lock().map_err(|e| e.to_string())?;
 
-    // Tagger
-    let tags = tagger::extract_tags(&cropped_bytes);
+    let tags = if let Some(tagger) = tagger_guard.as_mut() {
+        // Run inference
+        let results = tagger.infer(&cropped, 0.35).map_err(|e| e.to_string())?;
+        // Convert to string
+        results.into_iter().map(|(t, _)| t).collect::<Vec<_>>().join(", ")
+    } else {
+        println!("Tagger not loaded, using fallback.");
+        "1girl, solo, fallback_tag".to_string()
+    };
 
-    // Clipboard
     let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
     clipboard.set_text(tags.clone()).map_err(|e| e.to_string())?;
 
@@ -83,6 +91,7 @@ pub fn run() {
     tauri::Builder::default()
         .manage(AppState {
             last_capture: Mutex::new(None),
+            tagger: Mutex::new(None),
         })
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
@@ -90,11 +99,11 @@ pub fn run() {
         .plugin(tauri_plugin_notification::init())
         .plugin(
             tauri_plugin_global_shortcut::Builder::new()
-                .with_shortcut(Modifiers::ALT | Modifiers::SHIFT, Code::KeyT)
+                .with_shortcut(Shortcut::new(Some(Modifiers::ALT | Modifiers::SHIFT), Code::KeyT))
                 .unwrap()
                 .with_handler(|app, shortcut, event| {
                     if event.state == ShortcutState::Pressed {
-                        if shortcut.matches(Modifiers::ALT | Modifiers::SHIFT, Code::KeyT) {
+                         if shortcut.matches(Modifiers::ALT | Modifiers::SHIFT, Code::KeyT) {
                             println!("Global hotkey pressed!");
                             if let Some(window) = app.get_webview_window("main") {
                                 let _ = window.show();
@@ -127,6 +136,22 @@ pub fn run() {
                     _ => {}
                 })
                 .build(app)?;
+
+            // Initialize Tagger
+            let model_path = "models/model.onnx";
+            let tags_path = "models/tags.csv";
+
+            match Tagger::new(model_path, tags_path) {
+                Ok(tagger) => {
+                    let state = app.state::<AppState>();
+                    *state.tagger.lock().unwrap() = Some(tagger);
+                    println!("Tagger loaded successfully.");
+                }
+                Err(e) => {
+                    println!("Failed to load tagger: {}. (Expected if models not present)", e);
+                }
+            }
+
             Ok(())
         })
         .invoke_handler(tauri::generate_handler![greet, capture_screen, process_selection])
