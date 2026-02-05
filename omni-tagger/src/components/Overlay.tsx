@@ -2,40 +2,50 @@ import { useState, useEffect, useRef, MouseEvent } from 'react';
 import { invoke } from "@tauri-apps/api/core";
 
 interface OverlayProps {
+  screenIndex: number;
   onClose: () => void;
-  onProcess: (selection: {x: number, y: number, w: number, h: number}) => void;
 }
 
-export default function Overlay({ onClose, onProcess }: OverlayProps) {
+export default function Overlay({ screenIndex, onClose }: OverlayProps) {
   const [imageSrc, setImageSrc] = useState<string | null>(null);
   const [selection, setSelection] = useState<{x: number, y: number, w: number, h: number} | null>(null);
   const [isDragging, setIsDragging] = useState(false);
+  const [processing, setProcessing] = useState(false);
   const startPos = useRef<{x: number, y: number} | null>(null);
   const imgRef = useRef<HTMLImageElement>(null);
 
   useEffect(() => {
-    async function capture() {
+    async function fetchImage() {
       try {
-        console.log("Invoking capture_screen...");
-        const result = await invoke<string>('capture_screen');
-        console.log("Screen captured, length:", result.length);
+        const result = await invoke<string>('get_overlay_image', { screenIndex });
         setImageSrc(result);
       } catch (e) {
-        console.error("Failed to capture screen:", e);
-        alert("Failed to capture screen: " + e);
+        console.error("Failed to get overlay image:", e);
+        alert("Failed to get overlay image: " + e);
         onClose();
       }
     }
-    capture();
+    fetchImage();
 
     const handleKeyDown = (e: KeyboardEvent) => {
-        if (e.key === 'Escape') onClose();
+        if (e.key === 'Escape') handleClose();
     };
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [onClose]);
+  }, [screenIndex, onClose]);
+
+  const handleClose = async () => {
+      try {
+          await invoke('close_all_overlays');
+          onClose();
+      } catch (e) {
+          console.error("Failed to close overlays", e);
+          onClose();
+      }
+  };
 
   const handleMouseDown = (e: MouseEvent) => {
+    if (processing) return;
     setIsDragging(true);
     startPos.current = { x: e.clientX, y: e.clientY };
     setSelection({ x: e.clientX, y: e.clientY, w: 0, h: 0 });
@@ -54,48 +64,51 @@ export default function Overlay({ onClose, onProcess }: OverlayProps) {
     setSelection({ x, y, w, h });
   };
 
-  const handleMouseUp = () => {
+  const handleMouseUp = async () => {
     setIsDragging(false);
     if (selection && selection.w > 10 && selection.h > 10 && imgRef.current) {
         // Calculate scaling
         const img = imgRef.current;
         const rect = img.getBoundingClientRect();
-
         const naturalWidth = img.naturalWidth;
         const naturalHeight = img.naturalHeight;
 
         if (naturalWidth === 0 || naturalHeight === 0) return;
 
-        const { width, height } = rect;
-        const imageRatio = naturalWidth / naturalHeight;
-        const containerRatio = width / height;
+        // Since we are fullscreen on the correct monitor, image should match window aspect ratio exactly (mostly).
+        // But to be safe, we use the same robust logic or simplified.
+        // Simplified:
+        const scaleX = naturalWidth / rect.width;
+        const scaleY = naturalHeight / rect.height;
 
-        let displayWidth, displayHeight, offsetX, offsetY;
+        const realX = Math.round((selection.x - rect.left) * scaleX);
+        const realY = Math.round((selection.y - rect.top) * scaleY);
+        const realW = Math.round(selection.w * scaleX);
+        const realH = Math.round(selection.h * scaleY);
 
-        if (containerRatio > imageRatio) {
-            displayHeight = height;
-            displayWidth = height * imageRatio;
-            offsetX = (width - displayWidth) / 2;
-            offsetY = 0;
-        } else {
-            displayWidth = width;
-            displayHeight = width / imageRatio;
-            offsetX = 0;
-            offsetY = (height - displayHeight) / 2;
+        setProcessing(true);
+        try {
+            await invoke('process_selection', {
+                screenIndex,
+                x: realX,
+                y: realY,
+                w: realW,
+                h: realH
+            });
+            // Calling handleClose will close all overlays and show main window
+            handleClose();
+        } catch (e) {
+            console.error(e);
+            alert("Error: " + e);
+            setProcessing(false);
+            setSelection(null);
         }
-
-        const realX = Math.max(0, (selection.x - rect.left - offsetX) * (naturalWidth / displayWidth));
-        const realY = Math.max(0, (selection.y - rect.top - offsetY) * (naturalHeight / displayHeight));
-        const realW = selection.w * (naturalWidth / displayWidth);
-        const realH = selection.h * (naturalHeight / displayHeight);
-
-        onProcess({ x: realX, y: realY, w: realW, h: realH });
     } else {
         setSelection(null);
     }
   };
 
-  if (!imageSrc) return <div className="fixed inset-0 bg-black text-white flex items-center justify-center z-50">Capturing screen...</div>;
+  if (!imageSrc) return <div className="fixed inset-0 bg-black text-white flex items-center justify-center z-50">Loading...</div>;
 
   return (
     <div
@@ -104,13 +117,10 @@ export default function Overlay({ onClose, onProcess }: OverlayProps) {
         onMouseMove={handleMouseMove}
         onMouseUp={handleMouseUp}
     >
-      {/* Background Image */}
       <img ref={imgRef} src={imageSrc} className="absolute inset-0 w-full h-full object-contain pointer-events-none" alt="Screen Capture" />
 
-      {/* Dimmed Overlay (shown when no selection) */}
-      {!selection && <div className="absolute inset-0 bg-black opacity-40 pointer-events-none"></div>}
+      {!selection && <div className="absolute inset-0 bg-black opacity-10 pointer-events-none"></div>}
 
-      {/* Selection Box with inverted shadow for dimming outside */}
       {selection && (
           <div
             className="absolute border-2 border-primary bg-transparent"
@@ -119,15 +129,17 @@ export default function Overlay({ onClose, onProcess }: OverlayProps) {
                 top: selection.y,
                 width: selection.w,
                 height: selection.h,
-                boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.5)'
+                boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.3)'
             }}
           >
           </div>
       )}
 
-      <div className="absolute top-4 left-4 bg-black/70 text-white px-3 py-1 rounded pointer-events-none">
-          Drag to select area. ESC to cancel.
-      </div>
+      {processing && (
+          <div className="fixed inset-0 flex items-center justify-center z-[60] bg-black/20 text-white font-bold">
+              Processing...
+          </div>
+      )}
     </div>
   );
 }

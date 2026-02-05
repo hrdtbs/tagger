@@ -1,6 +1,5 @@
 import { useState, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
-import { invoke } from "@tauri-apps/api/core";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import Settings from "./components/Settings";
 import Overlay from "./components/Overlay";
@@ -8,51 +7,28 @@ import "./App.css";
 
 function App() {
   const [view, setView] = useState<'settings' | 'overlay'>('settings');
-  const [processing, setProcessing] = useState(false);
+  const [screenIndex, setScreenIndex] = useState<number>(0);
   const [lastResult, setLastResult] = useState<string | null>(null);
 
   useEffect(() => {
     const appWindow = getCurrentWindow();
-    if (view === 'overlay') {
-      appWindow.setFullscreen(true);
+    const label = appWindow.label;
+
+    if (label.startsWith('overlay-')) {
+        const index = parseInt(label.split('-')[1], 10);
+        setScreenIndex(index);
+        setView('overlay');
     } else {
-      appWindow.setFullscreen(false);
+        setView('settings');
+        // Listen for tag results in main window
+        const unlisten = listen<string>('tag-generated', (event) => {
+            setLastResult(event.payload);
+        });
+        return () => {
+            unlisten.then(f => f());
+        };
     }
-  }, [view]);
-
-  useEffect(() => {
-    const unlisten = listen('show-overlay', () => {
-      console.log("Show overlay event received");
-      setView('overlay');
-    });
-
-    return () => {
-      unlisten.then(f => f());
-    };
   }, []);
-
-  const handleProcess = async (selection: {x: number, y: number, w: number, h: number}) => {
-      setProcessing(true);
-      try {
-          const tags = await invoke<string>('process_selection', {
-              x: Math.round(selection.x),
-              y: Math.round(selection.y),
-              w: Math.round(selection.w),
-              h: Math.round(selection.h)
-          });
-
-          setLastResult(tags);
-
-          // Return to settings
-          setView('settings');
-
-      } catch (e) {
-          console.error(e);
-          alert("Error processing: " + e);
-      } finally {
-          setProcessing(false);
-      }
-  };
 
   return (
     <div className="w-full h-full font-sans">
@@ -75,16 +51,11 @@ function App() {
       )}
 
       {view === 'overlay' && (
+          // @ts-ignore - Overlay props will be updated in next step
           <Overlay
-            onClose={() => setView('settings')}
-            onProcess={handleProcess}
+            screenIndex={screenIndex}
+            onClose={() => getCurrentWindow().close()}
           />
-      )}
-
-      {processing && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] text-white font-bold text-xl">
-              Processing...
-          </div>
       )}
     </div>
   );

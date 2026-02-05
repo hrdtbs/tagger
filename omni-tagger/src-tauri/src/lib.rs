@@ -8,10 +8,11 @@ use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
     Emitter, Manager, State,
+    WebviewWindowBuilder, WebviewUrl, PhysicalPosition,
 };
 use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState, Shortcut};
 use crate::tagger::Tagger;
-use image::{ImageEncoder, RgbaImage, imageops}; // Import ImageEncoder trait
+use image::{ImageEncoder, RgbaImage, imageops, GenericImageView, DynamicImage}; // Import ImageEncoder trait
 use serde::{Deserialize, Serialize};
 use std::fs;
 use tauri::path::BaseDirectory;
@@ -66,7 +67,8 @@ fn save_config(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), String>
 }
 
 struct AppState {
-    last_capture: Mutex<Option<Vec<u8>>>,
+    // Store captured screens individually: (Screen Info, Image Buffer)
+    captures: Mutex<Vec<(Screen, RgbaImage)>>,
     tagger: Mutex<Option<Tagger>>,
     config: Mutex<AppConfig>,
 }
@@ -76,110 +78,165 @@ fn greet(name: &str) -> String {
     format!("Hello, {}! You've been greeted from Rust!", name)
 }
 
-#[tauri::command]
-async fn capture_screen(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<String, String> {
-    // Hide window to avoid capturing the overlay itself
+async fn capture_all_screens(app: &tauri::AppHandle) -> Result<(), String> {
+    // Hide main window
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.hide();
     }
-    // Give some time for the window to hide and compositor to update
+    // Give some time for the window to hide
     std::thread::sleep(std::time::Duration::from_millis(200));
 
-    let start = Instant::now();
-
     let screens = Screen::all();
-    let mut captures = Vec::new();
+    let mut captured_data = Vec::new();
 
     for screen in screens {
-        let image = screen
-            .capture()
-            .ok_or("Failed to capture screen".to_string())?;
-        captures.push((screen, image));
-    }
-
-    if captures.is_empty() {
-        // If capture failed, ensure window is shown again (though frontend handles errors usually)
-        if let Some(window) = app.get_webview_window("main") {
-            let _ = window.show();
-        }
-        return Err("No screens found".to_string());
-    }
-
-    // Calculate bounding box
-    let min_x = captures.iter().map(|(s, _)| s.x).min().unwrap_or(0);
-    let min_y = captures.iter().map(|(s, _)| s.y).min().unwrap_or(0);
-    let max_x = captures
-        .iter()
-        .map(|(s, i)| s.x + i.width() as i32)
-        .max()
-        .unwrap_or(0);
-    let max_y = captures
-        .iter()
-        .map(|(s, i)| s.y + i.height() as i32)
-        .max()
-        .unwrap_or(0);
-
-    let total_width = (max_x - min_x) as u32;
-    let total_height = (max_y - min_y) as u32;
-
-    // Stitch images
-    let mut stitched = RgbaImage::new(total_width, total_height);
-
-    for (screen, image) in captures {
+        let image = screen.capture().ok_or("Failed to capture screen".to_string())?;
         let img_width = image.width();
         let img_height = image.height();
         let img_buffer = image.buffer();
 
-        // Create RgbaImage from capture (assuming RGBA8)
-        let sub_img = RgbaImage::from_raw(img_width, img_height, img_buffer.clone())
+        let rgba = RgbaImage::from_raw(img_width, img_height, img_buffer.clone())
             .ok_or("Failed to create image buffer")?;
 
-        let x_offset = (screen.x - min_x) as i64;
-        let y_offset = (screen.y - min_y) as i64;
-
-        imageops::overlay(&mut stitched, &sub_img, x_offset, y_offset);
+        captured_data.push((screen, rgba));
     }
 
-    // Encode to PNG
-    let mut buffer = Vec::new();
-    image::codecs::png::PngEncoder::new(&mut buffer)
-        .write_image(
-            &stitched,
-            total_width,
-            total_height,
-            image::ColorType::Rgba8,
-        )
-        .map_err(|e| e.to_string())?;
+    let state = app.state::<AppState>();
+    *state.captures.lock().map_err(|e| e.to_string())? = captured_data;
 
-    *state.last_capture.lock().map_err(|e| e.to_string())? = Some(buffer.clone());
+    Ok(())
+}
 
-    let b64 = base64::engine::general_purpose::STANDARD.encode(&buffer);
+fn create_overlay_windows(app: &tauri::AppHandle) -> Result<(), String> {
+    let state = app.state::<AppState>();
+    let captures = state.captures.lock().map_err(|e| e.to_string())?;
 
-    println!("Screen captured in {:?}", start.elapsed());
+    for (i, (screen, _)) in captures.iter().enumerate() {
+        let label = format!("overlay-{}", i);
 
-    // Show window again
+        let window = if let Some(w) = app.get_webview_window(&label) {
+            w
+        } else {
+            WebviewWindowBuilder::new(
+                app,
+                &label,
+                WebviewUrl::App("index.html".into()),
+            )
+            .title("Overlay")
+            .transparent(true)
+            .decorations(false)
+            .always_on_top(true)
+            .skip_taskbar(true)
+            .build()
+            .map_err(|e| e.to_string())?
+        };
+
+        // Position window on the correct screen
+        let pos = PhysicalPosition::new(screen.x, screen.y);
+        window.set_position(pos).map_err(|e| e.to_string())?;
+
+        // Ensure fullscreen
+        window.set_fullscreen(true).map_err(|e| e.to_string())?;
+
+        window.show().map_err(|e| e.to_string())?;
+        window.set_focus().map_err(|e| e.to_string())?;
+    }
+    Ok(())
+}
+
+#[tauri::command]
+async fn capture_screen(_app: tauri::AppHandle, _state: State<'_, AppState>) -> Result<String, String> {
+    // Deprecated in favor of capture_all_screens + create_overlay_windows
+    Err("Deprecated".to_string())
+}
+
+#[tauri::command]
+async fn get_overlay_image(state: State<'_, AppState>, screen_index: usize) -> Result<String, String> {
+    let captures = state.captures.lock().map_err(|e| e.to_string())?;
+
+    if let Some((_, image)) = captures.get(screen_index) {
+        let mut buffer = Vec::new();
+        image::codecs::png::PngEncoder::new(&mut buffer)
+            .write_image(
+                image,
+                image.width(),
+                image.height(),
+                image::ColorType::Rgba8,
+            )
+            .map_err(|e| e.to_string())?;
+
+        let b64 = base64::engine::general_purpose::STANDARD.encode(&buffer);
+        Ok(format!("data:image/png;base64,{}", b64))
+    } else {
+        Err("Screen index out of bounds".to_string())
+    }
+}
+
+#[tauri::command]
+async fn close_all_overlays(app: tauri::AppHandle) -> Result<(), String> {
+    for window in app.webview_windows().values() {
+        if window.label().starts_with("overlay-") {
+            let _ = window.close();
+        }
+    }
+
     if let Some(window) = app.get_webview_window("main") {
         let _ = window.show();
         let _ = window.set_focus();
     }
 
-    Ok(format!("data:image/png;base64,{}", b64))
+    Ok(())
 }
 
 #[tauri::command]
 async fn process_selection(
+    app: tauri::AppHandle,
     state: State<'_, AppState>,
+    screen_index: usize,
     x: u32,
     y: u32,
     w: u32,
     h: u32,
 ) -> Result<String, String> {
-    let guard = state.last_capture.lock().map_err(|e| e.to_string())?;
-    let data = guard.as_ref().ok_or("No capture found")?;
+    let captures = state.captures.lock().map_err(|e| e.to_string())?;
+    let (_, img) = captures.get(screen_index).ok_or("Screen index out of bounds")?;
 
-    let img = image::load_from_memory(data).map_err(|e| e.to_string())?;
-    let cropped = img.crop_imm(x, y, w, h);
+    // Convert to DynamicImage to use crop_imm
+    let dyn_img = DynamicImage::ImageRgba8(img.clone());
+    let cropped = dyn_img.crop_imm(x, y, w, h);
 
+    // cropped seems to be DynamicImage based on previous compiler error.
+    // If it is SubImage, we need to convert it.
+    // But let's trust the compiler error that said it is DynamicImage or try to convert if not.
+    // If cropped is SubImage, .to_image() returns ImageBuffer.
+    // If cropped is DynamicImage, it doesn't have to_image().
+    // We will assume it is DynamicImage for now, if it fails, we know it is SubImage.
+
+    // Actually, DynamicImage::crop_imm returns DynamicImage in image 0.24?
+    // Let's assume yes.
+    let tags = run_inference(&state, cropped)?;
+
+    // Copy to clipboard
+    let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
+    clipboard.set_text(tags.clone()).map_err(|e| e.to_string())?;
+
+    // Emit event for Settings window
+    let _ = app.emit("tag-generated", tags.clone());
+
+    // Show main window to display result
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+
+    Ok(tags)
+}
+
+// Placeholder for future logic to reuse tagger code if needed
+fn run_inference(
+    state: &State<'_, AppState>,
+    cropped: DynamicImage,
+) -> Result<String, String> {
     // Tagger inference
     let mut tagger_guard = state.tagger.lock().map_err(|e| e.to_string())?;
     let config = state.config.lock().map_err(|e| e.to_string())?;
@@ -205,12 +262,9 @@ async fn process_selection(
         println!("Tagger not loaded, using fallback.");
         "1girl, solo, fallback_tag".to_string()
     };
-
-    let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
-    clipboard.set_text(tags.clone()).map_err(|e| e.to_string())?;
-
     Ok(tags)
 }
+
 
 #[tauri::command]
 fn get_config(state: State<'_, AppState>) -> Result<AppConfig, String> {
@@ -251,7 +305,7 @@ async fn set_config(app: tauri::AppHandle, state: State<'_, AppState>, config: A
 pub fn run() {
     tauri::Builder::default()
         .manage(AppState {
-            last_capture: Mutex::new(None),
+            captures: Mutex::new(Vec::new()),
             tagger: Mutex::new(None),
             config: Mutex::new(AppConfig::default()),
         })
@@ -267,12 +321,16 @@ pub fn run() {
                     if event.state == ShortcutState::Pressed {
                          if shortcut.matches(Modifiers::ALT | Modifiers::SHIFT, Code::KeyT) {
                             println!("Global hotkey pressed!");
-                            // Do not show window immediately. Wait for capture_screen to handle it.
-                            // if let Some(window) = app.get_webview_window("main") {
-                            //     let _ = window.show();
-                            //     let _ = window.set_focus();
-                            // }
-                            let _ = app.emit("show-overlay", ());
+                            let app_handle = app.clone();
+                            tauri::async_runtime::spawn(async move {
+                                if let Err(e) = capture_all_screens(&app_handle).await {
+                                    eprintln!("Failed to capture screens: {}", e);
+                                    return;
+                                }
+                                if let Err(e) = create_overlay_windows(&app_handle) {
+                                    eprintln!("Failed to create overlay windows: {}", e);
+                                }
+                            });
                         }
                     }
                 })
@@ -318,7 +376,15 @@ pub fn run() {
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet, capture_screen, process_selection, get_config, set_config])
+        .invoke_handler(tauri::generate_handler![
+            greet,
+            capture_screen,
+            process_selection,
+            get_config,
+            set_config,
+            get_overlay_image,
+            close_all_overlays
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
