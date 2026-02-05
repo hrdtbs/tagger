@@ -1,13 +1,17 @@
 # Development TODO List
 
+## Project Maintenance
+- [ ] **Regular Updates**: Regularly update and organize this TODO list as tasks are completed or new requirements arise.
+
 ## Core Functionality (Backend)
-- [ ] **AI Inference Engine**: Implement `ort` (ONNX Runtime) integration in Rust.
+- [ ] **AI Inference Engine**: Replace mock implementation in `tagger.rs` with real `ort` (ONNX Runtime) integration.
+    - [ ] Add `ort` dependency to `src-tauri/Cargo.toml`.
     - [ ] Load .onnx models (WD14 SwinV2, ConvNext).
     - [ ] Implement image preprocessing (Resize to 448x448, Normalize RGB).
     - [ ] Implement inference logic to get tag probabilities.
     - [ ] Load tag csv files (tag index to string mapping).
 - [ ] **Multi-Monitor Support**:
-    - [ ] Update `capture_screen` to capture all screens.
+    - [ ] Update `capture_screen` in `lib.rs` to capture all screens (currently only captures primary).
     - [ ] Stitch screens together or handle multiple windows for overlay.
     - [ ] Map frontend selection coordinates back to the correct screen/pixel.
 
