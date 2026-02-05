@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { listen } from "@tauri-apps/api/event";
 import { invoke } from "@tauri-apps/api/core";
+import { getCurrentWindow } from "@tauri-apps/api/window";
 import Settings from "./components/Settings";
 import Overlay from "./components/Overlay";
 import "./App.css";
@@ -9,6 +10,15 @@ function App() {
   const [view, setView] = useState<'settings' | 'overlay'>('settings');
   const [processing, setProcessing] = useState(false);
   const [lastResult, setLastResult] = useState<string | null>(null);
+
+  useEffect(() => {
+    const appWindow = getCurrentWindow();
+    if (view === 'overlay') {
+      appWindow.setFullscreen(true);
+    } else {
+      appWindow.setFullscreen(false);
+    }
+  }, [view]);
 
   useEffect(() => {
     const unlisten = listen('show-overlay', () => {
