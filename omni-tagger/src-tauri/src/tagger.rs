@@ -82,10 +82,6 @@ fn preprocess(image: &DynamicImage) -> Array4<f32> {
     input
 }
 
-pub fn extract_tags(_image_data: &[u8]) -> String {
-    "deprecated".to_string()
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

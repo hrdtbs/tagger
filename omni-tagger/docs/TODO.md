@@ -21,10 +21,10 @@
     - [x] Enable fullscreen mode for overlay.
     - [ ] Handle multi-monitor layouts correctly (currently assumes single viewport).
     - [ ] Improve selection UX (resize handles, move selection).
-- [ ] **Settings**:
-    - [ ] Persist settings to disk (config file) instead of LocalStorage.
-    - [ ] File picker for custom ONNX models.
-    - [ ] Tag exclusion list management.
+- [x] **Settings**:
+    - [x] Persist settings to disk (config file) instead of LocalStorage.
+    - [x] File picker for custom ONNX models.
+    - [x] Tag exclusion list management.
 
 ## Packaging & Distribution
 - [ ] **Model Management**:
