@@ -11,8 +11,8 @@
     - [x] Implement inference logic to get tag probabilities.
     - [x] Load tag csv files (tag index to string mapping).
 - [ ] **Multi-Monitor Support**:
-    - [ ] Update `capture_screen` in `lib.rs` to capture all screens (currently only captures primary).
-    - [ ] Stitch screens together or handle multiple windows for overlay.
+    - [x] Update `capture_screen` in `lib.rs` to capture all screens (currently only captures primary).
+    - [x] Stitch screens together or handle multiple windows for overlay.
     - [ ] Map frontend selection coordinates back to the correct screen/pixel.
 
 ## Frontend
