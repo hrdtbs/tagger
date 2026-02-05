@@ -12,10 +12,63 @@ use tauri::{
 use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState, Shortcut};
 use crate::tagger::Tagger;
 use image::{ImageEncoder, RgbaImage, imageops}; // Import ImageEncoder trait
+use serde::{Deserialize, Serialize};
+use std::fs;
+use tauri::path::BaseDirectory;
+
+#[derive(Debug, Serialize, Deserialize, Clone)]
+pub struct AppConfig {
+    pub model_path: String,
+    pub tags_path: String,
+    pub threshold: f32,
+    pub use_underscore: bool,
+    pub exclusion_list: Vec<String>,
+}
+
+impl Default for AppConfig {
+    fn default() -> Self {
+        Self {
+            model_path: "models/model.onnx".to_string(),
+            tags_path: "models/tags.csv".to_string(),
+            threshold: 0.35,
+            use_underscore: false,
+            exclusion_list: Vec::new(),
+        }
+    }
+}
+
+fn load_config(app: &tauri::AppHandle) -> AppConfig {
+    if let Ok(path) = app.path().resolve("config.json", BaseDirectory::AppConfig) {
+        if path.exists() {
+            if let Ok(content) = fs::read_to_string(&path) {
+                if let Ok(config) = serde_json::from_str(&content) {
+                    return config;
+                }
+            }
+        }
+    }
+    AppConfig::default()
+}
+
+fn save_config(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), String> {
+    let path = app
+        .path()
+        .resolve("config.json", BaseDirectory::AppConfig)
+        .map_err(|e| e.to_string())?;
+
+    if let Some(parent) = path.parent() {
+        fs::create_dir_all(parent).map_err(|e| e.to_string())?;
+    }
+
+    let content = serde_json::to_string_pretty(config).map_err(|e| e.to_string())?;
+    fs::write(path, content).map_err(|e| e.to_string())?;
+    Ok(())
+}
 
 struct AppState {
     last_capture: Mutex<Option<Vec<u8>>>,
     tagger: Mutex<Option<Tagger>>,
+    config: Mutex<AppConfig>,
 }
 
 #[tauri::command]
@@ -129,12 +182,25 @@ async fn process_selection(
 
     // Tagger inference
     let mut tagger_guard = state.tagger.lock().map_err(|e| e.to_string())?;
+    let config = state.config.lock().map_err(|e| e.to_string())?;
 
     let tags = if let Some(tagger) = tagger_guard.as_mut() {
         // Run inference
-        let results = tagger.infer(&cropped, 0.35).map_err(|e| e.to_string())?;
-        // Convert to string
-        results.into_iter().map(|(t, _)| t).collect::<Vec<_>>().join(", ")
+        let results = tagger.infer(&cropped, config.threshold).map_err(|e| e.to_string())?;
+
+        // Filter and format
+        let mut filtered: Vec<String> = results.into_iter()
+            .map(|(t, _)| t)
+            .filter(|t| !config.exclusion_list.contains(t))
+            .collect();
+
+        if config.use_underscore {
+            filtered = filtered.iter().map(|t| t.replace(" ", "_")).collect();
+        } else {
+             filtered = filtered.iter().map(|t| t.replace("_", " ")).collect();
+        }
+
+        filtered.join(", ")
     } else {
         println!("Tagger not loaded, using fallback.");
         "1girl, solo, fallback_tag".to_string()
@@ -146,12 +212,48 @@ async fn process_selection(
     Ok(tags)
 }
 
+#[tauri::command]
+fn get_config(state: State<'_, AppState>) -> Result<AppConfig, String> {
+    state.config.lock().map_err(|e| e.to_string()).map(|c| c.clone())
+}
+
+#[tauri::command]
+async fn set_config(app: tauri::AppHandle, state: State<'_, AppState>, config: AppConfig) -> Result<(), String> {
+    let mut config_guard = state.config.lock().map_err(|e| e.to_string())?;
+
+    let model_changed = config_guard.model_path != config.model_path || config_guard.tags_path != config.tags_path;
+
+    *config_guard = config.clone();
+
+    // Save to disk
+    save_config(&app, &config)?;
+
+    if model_changed {
+         // Reload Tagger
+         let mut tagger_guard = state.tagger.lock().map_err(|e| e.to_string())?;
+         match Tagger::new(&config.model_path, &config.tags_path) {
+            Ok(tagger) => {
+                *tagger_guard = Some(tagger);
+                println!("Tagger reloaded successfully from {}", config.model_path);
+            }
+            Err(e) => {
+                println!("Failed to reload tagger: {}", e);
+                *tagger_guard = None;
+                return Err(format!("Failed to reload tagger: {}", e));
+            }
+         }
+    }
+
+    Ok(())
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
         .manage(AppState {
             last_capture: Mutex::new(None),
             tagger: Mutex::new(None),
+            config: Mutex::new(AppConfig::default()),
         })
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
@@ -198,24 +300,25 @@ pub fn run() {
                 })
                 .build(app)?;
 
-            // Initialize Tagger
-            let model_path = "models/model.onnx";
-            let tags_path = "models/tags.csv";
+            // Initialize Config and Tagger
+            let state = app.state::<AppState>();
+            let config = load_config(app.handle());
 
-            match Tagger::new(model_path, tags_path) {
+            // Reload tagger based on config
+            match Tagger::new(&config.model_path, &config.tags_path) {
                 Ok(tagger) => {
-                    let state = app.state::<AppState>();
                     *state.tagger.lock().unwrap() = Some(tagger);
-                    println!("Tagger loaded successfully.");
+                    println!("Tagger loaded successfully from {}", config.model_path);
                 }
                 Err(e) => {
                     println!("Failed to load tagger: {}. (Expected if models not present)", e);
                 }
             }
+            *state.config.lock().unwrap() = config;
 
             Ok(())
         })
-        .invoke_handler(tauri::generate_handler![greet, capture_screen, process_selection])
+        .invoke_handler(tauri::generate_handler![greet, capture_screen, process_selection, get_config, set_config])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
