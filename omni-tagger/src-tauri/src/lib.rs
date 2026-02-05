@@ -11,7 +11,7 @@ use tauri::{
 };
 use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState, Shortcut};
 use crate::tagger::Tagger;
-use image::ImageEncoder; // Import ImageEncoder trait
+use image::{ImageEncoder, RgbaImage, imageops}; // Import ImageEncoder trait
 
 struct AppState {
     last_capture: Mutex<Option<Vec<u8>>>,
@@ -28,29 +28,71 @@ async fn capture_screen(state: State<'_, AppState>) -> Result<String, String> {
     let start = Instant::now();
 
     let screens = Screen::all();
+    let mut captures = Vec::new();
 
-    if let Some(screen) = screens.first() {
-        let image = screen.capture().ok_or("Failed to capture screen")?;
-
-        // Manual PNG encoding
-        let width = image.width();
-        let height = image.height();
-        let rgba = image.buffer();
-
-        let mut buffer = Vec::new();
-        image::codecs::png::PngEncoder::new(&mut buffer)
-            .write_image(rgba, width, height, image::ColorType::Rgba8)
-            .map_err(|e| e.to_string())?;
-
-        *state.last_capture.lock().map_err(|e| e.to_string())? = Some(buffer.clone());
-
-        let b64 = base64::engine::general_purpose::STANDARD.encode(&buffer);
-
-        println!("Screen captured in {:?}", start.elapsed());
-        Ok(format!("data:image/png;base64,{}", b64))
-    } else {
-        Err("No screens found".to_string())
+    for screen in screens {
+        let image = screen
+            .capture()
+            .ok_or("Failed to capture screen".to_string())?;
+        captures.push((screen, image));
     }
+
+    if captures.is_empty() {
+        return Err("No screens found".to_string());
+    }
+
+    // Calculate bounding box
+    let min_x = captures.iter().map(|(s, _)| s.x).min().unwrap_or(0);
+    let min_y = captures.iter().map(|(s, _)| s.y).min().unwrap_or(0);
+    let max_x = captures
+        .iter()
+        .map(|(s, i)| s.x + i.width() as i32)
+        .max()
+        .unwrap_or(0);
+    let max_y = captures
+        .iter()
+        .map(|(s, i)| s.y + i.height() as i32)
+        .max()
+        .unwrap_or(0);
+
+    let total_width = (max_x - min_x) as u32;
+    let total_height = (max_y - min_y) as u32;
+
+    // Stitch images
+    let mut stitched = RgbaImage::new(total_width, total_height);
+
+    for (screen, image) in captures {
+        let img_width = image.width();
+        let img_height = image.height();
+        let img_buffer = image.buffer();
+
+        // Create RgbaImage from capture (assuming RGBA8)
+        let sub_img = RgbaImage::from_raw(img_width, img_height, img_buffer.clone())
+            .ok_or("Failed to create image buffer")?;
+
+        let x_offset = (screen.x - min_x) as i64;
+        let y_offset = (screen.y - min_y) as i64;
+
+        imageops::overlay(&mut stitched, &sub_img, x_offset, y_offset);
+    }
+
+    // Encode to PNG
+    let mut buffer = Vec::new();
+    image::codecs::png::PngEncoder::new(&mut buffer)
+        .write_image(
+            &stitched,
+            total_width,
+            total_height,
+            image::ColorType::Rgba8,
+        )
+        .map_err(|e| e.to_string())?;
+
+    *state.last_capture.lock().map_err(|e| e.to_string())? = Some(buffer.clone());
+
+    let b64 = base64::engine::general_purpose::STANDARD.encode(&buffer);
+
+    println!("Screen captured in {:?}", start.elapsed());
+    Ok(format!("data:image/png;base64,{}", b64))
 }
 
 #[tauri::command]
