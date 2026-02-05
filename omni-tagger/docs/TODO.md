@@ -17,6 +17,8 @@
 
 ## Frontend
 - [ ] **Overlay**:
+    - [x] Prevent overlay self-capture (hide window during capture).
+    - [x] Enable fullscreen mode for overlay.
     - [ ] Handle multi-monitor layouts correctly (currently assumes single viewport).
     - [ ] Improve selection UX (resize handles, move selection).
 - [ ] **Settings**:
