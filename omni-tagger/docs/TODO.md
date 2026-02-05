@@ -20,7 +20,7 @@
     - [x] Prevent overlay self-capture (hide window during capture).
     - [x] Enable fullscreen mode for overlay.
     - [x] Handle multi-monitor layouts correctly (currently assumes single viewport).
-    - [ ] Improve selection UX (resize handles, move selection).
+    - [x] Improve selection UX (resize handles, move selection).
 - [x] **Settings**:
     - [x] Persist settings to disk (config file) instead of LocalStorage.
     - [x] File picker for custom ONNX models.
