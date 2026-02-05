@@ -24,7 +24,14 @@ fn greet(name: &str) -> String {
 }
 
 #[tauri::command]
-async fn capture_screen(state: State<'_, AppState>) -> Result<String, String> {
+async fn capture_screen(app: tauri::AppHandle, state: State<'_, AppState>) -> Result<String, String> {
+    // Hide window to avoid capturing the overlay itself
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.hide();
+    }
+    // Give some time for the window to hide and compositor to update
+    std::thread::sleep(std::time::Duration::from_millis(200));
+
     let start = Instant::now();
 
     let screens = Screen::all();
@@ -38,6 +45,10 @@ async fn capture_screen(state: State<'_, AppState>) -> Result<String, String> {
     }
 
     if captures.is_empty() {
+        // If capture failed, ensure window is shown again (though frontend handles errors usually)
+        if let Some(window) = app.get_webview_window("main") {
+            let _ = window.show();
+        }
         return Err("No screens found".to_string());
     }
 
@@ -92,6 +103,13 @@ async fn capture_screen(state: State<'_, AppState>) -> Result<String, String> {
     let b64 = base64::engine::general_purpose::STANDARD.encode(&buffer);
 
     println!("Screen captured in {:?}", start.elapsed());
+
+    // Show window again
+    if let Some(window) = app.get_webview_window("main") {
+        let _ = window.show();
+        let _ = window.set_focus();
+    }
+
     Ok(format!("data:image/png;base64,{}", b64))
 }
 
@@ -147,10 +165,11 @@ pub fn run() {
                     if event.state == ShortcutState::Pressed {
                          if shortcut.matches(Modifiers::ALT | Modifiers::SHIFT, Code::KeyT) {
                             println!("Global hotkey pressed!");
-                            if let Some(window) = app.get_webview_window("main") {
-                                let _ = window.show();
-                                let _ = window.set_focus();
-                            }
+                            // Do not show window immediately. Wait for capture_screen to handle it.
+                            // if let Some(window) = app.get_webview_window("main") {
+                            //     let _ = window.show();
+                            //     let _ = window.set_focus();
+                            // }
                             let _ = app.emit("show-overlay", ());
                         }
                     }
