@@ -281,6 +281,20 @@ fn run_inference(
 
 
 #[tauri::command]
+async fn check_model_exists(app: tauri::AppHandle, path_str: String) -> Result<bool, String> {
+    let path = resolve_model_path(&app, &path_str);
+    Ok(model_manager::check_file_exists(&path))
+}
+
+#[tauri::command]
+async fn download_new_model(app: tauri::AppHandle, url: String, path_str: String) -> Result<(), String> {
+    let path = resolve_model_path(&app, &path_str);
+    model_manager::download_file(&app, &url, &path).await?;
+    let _ = app.emit("model-download-finished", ());
+    Ok(())
+}
+
+#[tauri::command]
 fn get_config(state: State<'_, AppState>) -> Result<AppConfig, String> {
     state.config.lock().map_err(|e| e.to_string()).map(|c| c.clone())
 }
@@ -428,7 +442,9 @@ pub fn run() {
             get_config,
             set_config,
             get_overlay_image,
-            close_all_overlays
+            close_all_overlays,
+            check_model_exists,
+            download_new_model
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

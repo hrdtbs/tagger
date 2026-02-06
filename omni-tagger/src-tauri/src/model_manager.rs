@@ -30,7 +30,11 @@ pub async fn check_and_download_models(app: &AppHandle, model_path: &Path, tags_
     Ok(())
 }
 
-async fn download_file(app: &AppHandle, url: &str, dest: &Path) -> Result<(), String> {
+pub fn check_file_exists(path: &Path) -> bool {
+    path.exists()
+}
+
+pub async fn download_file(app: &AppHandle, url: &str, dest: &Path) -> Result<(), String> {
     let client = reqwest::Client::new();
     let res = client.get(url)
         .send()
