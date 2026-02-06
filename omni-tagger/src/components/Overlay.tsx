@@ -79,11 +79,37 @@ export default function Overlay({ screenIndex, onClose }: OverlayProps) {
 
     if (naturalWidth === 0 || naturalHeight === 0) return;
 
-    const scaleX = naturalWidth / rect.width;
-    const scaleY = naturalHeight / rect.height;
+    // Calculate aspect ratios
+    const imageAspect = naturalWidth / naturalHeight;
+    const containerAspect = rect.width / rect.height;
 
-    const realX = Math.round((selection.x - rect.left) * scaleX);
-    const realY = Math.round((selection.y - rect.top) * scaleY);
+    let displayWidth, displayHeight;
+    let offsetLeft = 0;
+    let offsetTop = 0;
+
+    if (imageAspect > containerAspect) {
+        // Image is wider relative to container: fits width, letterboxed height
+        displayWidth = rect.width;
+        displayHeight = rect.width / imageAspect;
+        offsetLeft = 0;
+        offsetTop = (rect.height - displayHeight) / 2;
+    } else {
+        // Image is taller relative to container: fits height, pillared width
+        displayHeight = rect.height;
+        displayWidth = rect.height * imageAspect;
+        offsetTop = 0;
+        offsetLeft = (rect.width - displayWidth) / 2;
+    }
+
+    const scaleX = naturalWidth / displayWidth;
+    const scaleY = naturalHeight / displayHeight;
+
+    // Adjust selection coordinates to be relative to the displayed image
+    const relativeX = selection.x - rect.left - offsetLeft;
+    const relativeY = selection.y - rect.top - offsetTop;
+
+    const realX = Math.round(relativeX * scaleX);
+    const realY = Math.round(relativeY * scaleY);
     const realW = Math.round(selection.w * scaleX);
     const realH = Math.round(selection.h * scaleY);
 

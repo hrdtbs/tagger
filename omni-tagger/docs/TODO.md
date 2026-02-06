@@ -27,11 +27,11 @@
     - [x] Tag exclusion list management.
 
 ## Packaging & Distribution
-- [ ] **Model Management**:
-    - [ ] Mechanism to download models on first run or bundle them (considering file size).
+- [x] **Model Management**:
+    - [x] Mechanism to download models on first run or bundle them (considering file size).
 - [ ] **CI/CD**:
     - [ ] GitHub Actions for building Windows/macOS/Linux binaries.
 
 ## Bugs / Known Issues
 - [ ] Window focus: Ensure overlay window takes focus immediately on hotkey (partially addressed in skeleton).
-- [ ] Coordinate mapping: Verify `object-contain` scaling logic on different aspect ratios and high DPI screens.
+- [x] Coordinate mapping: Verify `object-contain` scaling logic on different aspect ratios and high DPI screens.

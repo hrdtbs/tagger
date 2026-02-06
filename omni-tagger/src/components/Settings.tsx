@@ -18,11 +18,20 @@ interface AppConfig {
   exclusion_list: string[];
 }
 
+const PRESETS = [
+    { name: "WD14 SwinV2 (Default)", path: "models/model.onnx", url: "https://huggingface.co/SmilingWolf/wd-v1-4-swinv2-tagger-v2/resolve/main/model.onnx" },
+    { name: "WD14 ConvNext", path: "models/convnext.onnx", url: "https://huggingface.co/SmilingWolf/wd-v1-4-convnext-tagger-v2/resolve/main/model.onnx" },
+    { name: "WD14 ConvNextV2", path: "models/convnextv2.onnx", url: "https://huggingface.co/SmilingWolf/wd-v1-4-convnextv2-tagger-v2/resolve/main/model.onnx" }
+];
+const TAGS_URL = "https://huggingface.co/SmilingWolf/wd-v1-4-swinv2-tagger-v2/resolve/main/selected_tags.csv";
+const TAGS_PATH = "models/tags.csv";
+
 export default function Settings() {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [exclusionText, setExclusionText] = useState("");
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
+  const [modelStatus, setModelStatus] = useState<'checking' | 'present' | 'missing'>('checking');
 
   useEffect(() => {
     invoke<AppConfig>('get_config')
@@ -42,6 +51,7 @@ export default function Settings() {
 
     const unlistenFinished = listen('model-download-finished', () => {
         setDownloadProgress(null);
+        if (config) checkModel(config.model_path);
     });
 
     return () => {
@@ -49,6 +59,42 @@ export default function Settings() {
         unlistenFinished.then(f => f());
     };
   }, []);
+
+  // Check model status when config.model_path changes
+  useEffect(() => {
+    if (config) {
+        checkModel(config.model_path);
+    }
+  }, [config?.model_path]);
+
+  const checkModel = async (path: string) => {
+      setModelStatus('checking');
+      try {
+          const exists = await invoke<boolean>('check_model_exists', { pathStr: path });
+          setModelStatus(exists ? 'present' : 'missing');
+      } catch (e) {
+          console.error("Failed to check model", e);
+          setModelStatus('missing');
+      }
+  };
+
+  const downloadCurrentModel = async () => {
+      if (!config) return;
+      const preset = PRESETS.find(p => p.path === config.model_path);
+      if (!preset) return;
+
+      try {
+          await invoke('download_new_model', { url: preset.url, pathStr: preset.path });
+          // Ensure tags exist too
+          const tagsExists = await invoke<boolean>('check_model_exists', { pathStr: config.tags_path });
+          if (!tagsExists) {
+               await invoke('download_new_model', { url: TAGS_URL, pathStr: TAGS_PATH });
+          }
+      } catch (e) {
+          console.error("Failed to download", e);
+          alert("Download failed: " + e);
+      }
+  };
 
   useEffect(() => {
       if (config) {
@@ -96,6 +142,45 @@ export default function Settings() {
       {/* Model Selection */}
       <div className="bg-white p-4 rounded shadow mb-4">
         <h2 className="text-lg font-semibold mb-2">Model Selection</h2>
+
+        <div className="mb-4">
+            <label className="block text-sm font-medium text-gray-700 mb-1">Model Preset</label>
+             <select
+                value={PRESETS.find(p => p.path === config.model_path)?.path || "custom"}
+                onChange={(e) => {
+                    const val = e.target.value;
+                    if (val === "custom") {
+                        // Do nothing, let user browse or keep current custom
+                    } else {
+                        const preset = PRESETS.find(p => p.path === val);
+                        if (preset) {
+                             const newConfig = { ...config, model_path: preset.path, tags_path: TAGS_PATH };
+                             saveConfig(newConfig);
+                        }
+                    }
+                }}
+                className="w-full p-2 border rounded bg-white mb-2 cursor-pointer"
+             >
+                 {PRESETS.map(p => (
+                     <option key={p.path} value={p.path}>{p.name}</option>
+                 ))}
+                 <option value="custom">Custom</option>
+             </select>
+
+             {/* Download Button if missing */}
+             {modelStatus === 'missing' && PRESETS.some(p => p.path === config.model_path) && (
+                 <div className="mb-2 p-2 bg-yellow-50 text-yellow-800 border border-yellow-200 rounded flex items-center justify-between">
+                     <span>Model file not found locally.</span>
+                     <button
+                        onClick={downloadCurrentModel}
+                        disabled={!!downloadProgress}
+                        className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+                     >
+                         {downloadProgress ? "Downloading..." : "Download Model"}
+                     </button>
+                 </div>
+             )}
+        </div>
 
         <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">Model Path (.onnx)</label>
