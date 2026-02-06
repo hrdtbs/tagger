@@ -1,4 +1,5 @@
 mod tagger;
+mod model_manager;
 
 use base64::Engine;
 use screenshots::Screen;
@@ -64,6 +65,19 @@ fn save_config(app: &tauri::AppHandle, config: &AppConfig) -> Result<(), String>
     let content = serde_json::to_string_pretty(config).map_err(|e| e.to_string())?;
     fs::write(path, content).map_err(|e| e.to_string())?;
     Ok(())
+}
+
+fn resolve_model_path(app: &tauri::AppHandle, path_str: &str) -> std::path::PathBuf {
+    let path = std::path::Path::new(path_str);
+    if path.is_absolute() {
+        path.to_path_buf()
+    } else {
+        // Default to AppLocalData for relative paths
+        match app.path().resolve(path_str, BaseDirectory::AppLocalData) {
+            Ok(p) => p,
+            Err(_) => path.to_path_buf() // Fallback
+        }
+    }
 }
 
 struct AppState {
@@ -285,10 +299,13 @@ async fn set_config(app: tauri::AppHandle, state: State<'_, AppState>, config: A
     if model_changed {
          // Reload Tagger
          let mut tagger_guard = state.tagger.lock().map_err(|e| e.to_string())?;
-         match Tagger::new(&config.model_path, &config.tags_path) {
+         let model_path = resolve_model_path(&app, &config.model_path);
+         let tags_path = resolve_model_path(&app, &config.tags_path);
+
+         match Tagger::new(model_path.to_str().unwrap_or(&config.model_path), tags_path.to_str().unwrap_or(&config.tags_path)) {
             Ok(tagger) => {
                 *tagger_guard = Some(tagger);
-                println!("Tagger reloaded successfully from {}", config.model_path);
+                println!("Tagger reloaded successfully from {:?}", model_path);
             }
             Err(e) => {
                 println!("Failed to reload tagger: {}", e);
@@ -361,18 +378,46 @@ pub fn run() {
             // Initialize Config and Tagger
             let state = app.state::<AppState>();
             let config = load_config(app.handle());
+            *state.config.lock().unwrap() = config.clone();
 
-            // Reload tagger based on config
-            match Tagger::new(&config.model_path, &config.tags_path) {
-                Ok(tagger) => {
-                    *state.tagger.lock().unwrap() = Some(tagger);
-                    println!("Tagger loaded successfully from {}", config.model_path);
+            let app_handle = app.handle().clone();
+            let model_path_str = config.model_path.clone();
+            let tags_path_str = config.tags_path.clone();
+
+            tauri::async_runtime::spawn(async move {
+                let model_path = resolve_model_path(&app_handle, &model_path_str);
+                let tags_path = resolve_model_path(&app_handle, &tags_path_str);
+
+                // Ensure models exist
+                if let Err(e) = model_manager::check_and_download_models(&app_handle, &model_path, &tags_path).await {
+                    eprintln!("Failed to download models: {}", e);
+                     let _ = app_handle.emit("model-download-error", e.clone());
+                     use tauri_plugin_notification::NotificationExt;
+                     let _ = app_handle.notification().builder()
+                        .title("OmniTagger Error")
+                        .body(format!("Failed to download models: {}", e))
+                        .show();
+                     return;
                 }
-                Err(e) => {
-                    println!("Failed to load tagger: {}. (Expected if models not present)", e);
+
+                // Load Tagger
+                match Tagger::new(model_path.to_str().unwrap_or(&model_path_str), tags_path.to_str().unwrap_or(&tags_path_str)) {
+                    Ok(tagger) => {
+                        let state = app_handle.state::<AppState>();
+                        *state.tagger.lock().unwrap() = Some(tagger);
+                        println!("Tagger loaded successfully");
+                        let _ = app_handle.emit("tagger-loaded", ());
+                    }
+                    Err(e) => {
+                        eprintln!("Failed to load tagger: {}", e);
+                        use tauri_plugin_notification::NotificationExt;
+                         let _ = app_handle.notification().builder()
+                            .title("OmniTagger Error")
+                            .body(format!("Failed to load model: {}", e))
+                            .show();
+                    }
                 }
-            }
-            *state.config.lock().unwrap() = config;
+            });
 
             Ok(())
         })

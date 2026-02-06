@@ -1,6 +1,14 @@
 import { useState, useEffect } from 'react';
 import { invoke } from "@tauri-apps/api/core";
+import { listen } from "@tauri-apps/api/event";
 import { open } from '@tauri-apps/plugin-dialog';
+
+interface DownloadProgress {
+    file: string;
+    total: number;
+    downloaded: number;
+    percent: number;
+}
 
 interface AppConfig {
   model_path: string;
@@ -14,6 +22,7 @@ export default function Settings() {
   const [config, setConfig] = useState<AppConfig | null>(null);
   const [loading, setLoading] = useState(true);
   const [exclusionText, setExclusionText] = useState("");
+  const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
 
   useEffect(() => {
     invoke<AppConfig>('get_config')
@@ -26,6 +35,19 @@ export default function Settings() {
         console.error("Failed to load config", e);
         setLoading(false);
       });
+
+    const unlistenProgress = listen<DownloadProgress>('model-download-progress', (event) => {
+        setDownloadProgress(event.payload);
+    });
+
+    const unlistenFinished = listen('model-download-finished', () => {
+        setDownloadProgress(null);
+    });
+
+    return () => {
+        unlistenProgress.then(f => f());
+        unlistenFinished.then(f => f());
+    };
   }, []);
 
   useEffect(() => {
@@ -60,6 +82,16 @@ export default function Settings() {
   return (
     <div className="p-6 bg-gray-100 min-h-screen text-gray-800">
       <h1 className="text-2xl font-bold mb-4">OmniTagger Settings</h1>
+
+      {downloadProgress && (
+        <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4" role="alert">
+            <p className="font-bold">Downloading Model...</p>
+            <p className="text-sm mb-2">{downloadProgress.file}: {downloadProgress.percent.toFixed(1)}%</p>
+            <div className="w-full bg-blue-200 rounded-full h-2.5 dark:bg-blue-200">
+                <div className="bg-blue-600 h-2.5 rounded-full" style={{ width: `${downloadProgress.percent}%` }}></div>
+            </div>
+        </div>
+      )}
 
       {/* Model Selection */}
       <div className="bg-white p-4 rounded shadow mb-4">
