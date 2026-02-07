@@ -1,1 +1,8 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+  Since we removed the Overlay, most custom CSS is not needed.
+  Tailwind handles the rest.
+*/

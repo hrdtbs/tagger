@@ -32,6 +32,7 @@ export default function Settings() {
   const [exclusionText, setExclusionText] = useState("");
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
   const [modelStatus, setModelStatus] = useState<'checking' | 'present' | 'missing'>('checking');
+  const [extensionId, setExtensionId] = useState("");
 
   useEffect(() => {
     invoke<AppConfig>('get_config')
@@ -67,6 +68,13 @@ export default function Settings() {
     }
   }, [config?.model_path]);
 
+  // Sync exclusion text when config changes (e.g. formatting)
+  useEffect(() => {
+      if (config) {
+          setExclusionText(config.exclusion_list.join(", "));
+      }
+  }, [config]);
+
   const checkModel = async (path: string) => {
       setModelStatus('checking');
       try {
@@ -85,7 +93,6 @@ export default function Settings() {
 
       try {
           await invoke('download_new_model', { url: preset.url, pathStr: preset.path });
-          // Ensure tags exist too
           const tagsExists = await invoke<boolean>('check_model_exists', { pathStr: config.tags_path });
           if (!tagsExists) {
                await invoke('download_new_model', { url: TAGS_URL, pathStr: TAGS_PATH });
@@ -95,16 +102,6 @@ export default function Settings() {
           alert("Download failed: " + e);
       }
   };
-
-  useEffect(() => {
-      if (config) {
-          // This ensures that if config is updated (e.g. after save), the text area reflects the formatted list.
-          // However, we must be careful not to override while typing if we were saving on change.
-          // Since we save on Blur, this update happens after Blur, which is fine.
-          // It reformats "tag,  tag2" to "tag, tag2".
-          setExclusionText(config.exclusion_list.join(", "));
-      }
-  }, [config]);
 
   const saveConfig = async (newConfig: AppConfig) => {
       setConfig(newConfig);
@@ -122,12 +119,34 @@ export default function Settings() {
       saveConfig(newConfig);
   };
 
+  const registerContextMenu = async (enable: boolean) => {
+      try {
+          await invoke('register_context_menu', { enable });
+          alert(`Successfully ${enable ? 'added to' : 'removed from'} Context Menu.`);
+      } catch (e) {
+          alert("Failed: " + e);
+      }
+  };
+
+  const registerNativeHost = async () => {
+      if (!extensionId) {
+          alert("Please enter the Extension ID first.");
+          return;
+      }
+      try {
+          await invoke('register_native_host', { extensionId });
+          alert("Native Host registered successfully!");
+      } catch (e) {
+          alert("Failed: " + e);
+      }
+  };
+
   if (loading) return <div className="p-6">Loading settings...</div>;
   if (!config) return <div className="p-6 text-red-500">Failed to load configuration.</div>;
 
   return (
-    <div className="p-6 bg-gray-100 min-h-screen text-gray-800">
-      <h1 className="text-2xl font-bold mb-4">OmniTagger Settings</h1>
+    <div className="p-6 bg-gray-100 min-h-screen text-gray-800 font-sans">
+      <h1 className="text-2xl font-bold mb-6">OmniTagger Settings</h1>
 
       {downloadProgress && (
         <div className="bg-blue-100 border-l-4 border-blue-500 text-blue-700 p-4 mb-4" role="alert">
@@ -139,9 +158,58 @@ export default function Settings() {
         </div>
       )}
 
+      {/* Integrations */}
+      <div className="bg-white p-4 rounded shadow mb-6">
+        <h2 className="text-lg font-semibold mb-4 border-b pb-2">Integrations</h2>
+
+        {/* Windows Context Menu */}
+        <div className="mb-6">
+            <h3 className="font-medium mb-2">Windows Context Menu (Local Files)</h3>
+            <div className="flex space-x-4">
+                <button
+                    onClick={() => registerContextMenu(true)}
+                    className="bg-green-600 text-white px-4 py-2 rounded hover:bg-green-700 text-sm"
+                >
+                    Add to Right Click Menu
+                </button>
+                <button
+                    onClick={() => registerContextMenu(false)}
+                    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm"
+                >
+                    Remove
+                </button>
+            </div>
+        </div>
+
+        {/* Browser Extension */}
+        <div>
+            <h3 className="font-medium mb-2">Browser Extension (Chrome/Edge)</h3>
+            <ol className="list-decimal list-inside text-sm text-gray-600 mb-4 space-y-1">
+                <li>Load the <code>browser-extension</code> folder as an "Unpacked Extension".</li>
+                <li>Copy the <strong>ID</strong> of the loaded extension.</li>
+                <li>Paste the ID below and click Register.</li>
+            </ol>
+            <div className="flex gap-2">
+                <input
+                    type="text"
+                    placeholder="e.g. abcdefghijklmnopqrstuvwxyz"
+                    value={extensionId}
+                    onChange={(e) => setExtensionId(e.target.value)}
+                    className="flex-1 p-2 border rounded bg-gray-50 text-sm"
+                />
+                <button
+                    onClick={registerNativeHost}
+                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
+                >
+                    Register Host
+                </button>
+            </div>
+        </div>
+      </div>
+
       {/* Model Selection */}
-      <div className="bg-white p-4 rounded shadow mb-4">
-        <h2 className="text-lg font-semibold mb-2">Model Selection</h2>
+      <div className="bg-white p-4 rounded shadow mb-6">
+        <h2 className="text-lg font-semibold mb-4 border-b pb-2">AI Model</h2>
 
         <div className="mb-4">
             <label className="block text-sm font-medium text-gray-700 mb-1">Model Preset</label>
@@ -149,9 +217,7 @@ export default function Settings() {
                 value={PRESETS.find(p => p.path === config.model_path)?.path || "custom"}
                 onChange={(e) => {
                     const val = e.target.value;
-                    if (val === "custom") {
-                        // Do nothing, let user browse or keep current custom
-                    } else {
+                    if (val !== "custom") {
                         const preset = PRESETS.find(p => p.path === val);
                         if (preset) {
                              const newConfig = { ...config, model_path: preset.path, tags_path: TAGS_PATH };
@@ -167,14 +233,13 @@ export default function Settings() {
                  <option value="custom">Custom</option>
              </select>
 
-             {/* Download Button if missing */}
              {modelStatus === 'missing' && PRESETS.some(p => p.path === config.model_path) && (
-                 <div className="mb-2 p-2 bg-yellow-50 text-yellow-800 border border-yellow-200 rounded flex items-center justify-between">
-                     <span>Model file not found locally.</span>
+                 <div className="mt-2 p-2 bg-yellow-50 text-yellow-800 border border-yellow-200 rounded flex items-center justify-between">
+                     <span className="text-sm">Model file not found locally.</span>
                      <button
                         onClick={downloadCurrentModel}
                         disabled={!!downloadProgress}
-                        className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50 cursor-pointer"
+                        className="bg-blue-600 text-white px-3 py-1 rounded text-sm hover:bg-blue-700 disabled:opacity-50"
                      >
                          {downloadProgress ? "Downloading..." : "Download Model"}
                      </button>
@@ -200,7 +265,7 @@ export default function Settings() {
                             updateField('model_path', selected);
                         }
                     }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 cursor-pointer"
+                    className="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300 text-sm"
                 >
                     Browse
                 </button>
@@ -225,7 +290,7 @@ export default function Settings() {
                             updateField('tags_path', selected);
                         }
                     }}
-                    className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 cursor-pointer"
+                    className="bg-gray-200 text-gray-800 px-3 py-2 rounded hover:bg-gray-300 text-sm"
                 >
                     Browse
                 </button>
@@ -233,57 +298,52 @@ export default function Settings() {
         </div>
       </div>
 
-      {/* Threshold */}
-      <div className="bg-white p-4 rounded shadow mb-4">
-        <h2 className="text-lg font-semibold mb-2">Confidence Threshold: {config.threshold}</h2>
-        <input
-          type="range"
-          min="0"
-          max="1"
-          step="0.01"
-          value={config.threshold}
-          onChange={(e) => {
-              // We update config state immediately for UI responsiveness,
-              // but we should ideally debounce the save.
-              // For now, save immediately (might spam backend/fs).
-              updateField('threshold', parseFloat(e.target.value));
-          }}
-          className="w-full cursor-pointer"
-        />
-        <div className="flex justify-between text-xs text-gray-500">
-            <span>0.0</span>
-            <span>1.0</span>
+      {/* Threshold & Formatting */}
+      <div className="bg-white p-4 rounded shadow mb-6">
+        <h2 className="text-lg font-semibold mb-4 border-b pb-2">Processing</h2>
+
+        <div className="mb-6">
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Confidence Threshold: {config.threshold}</h3>
+            <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.01"
+            value={config.threshold}
+            onChange={(e) => updateField('threshold', parseFloat(e.target.value))}
+            className="w-full cursor-pointer"
+            />
+            <div className="flex justify-between text-xs text-gray-500 mt-1">
+                <span>0.0</span>
+                <span>1.0</span>
+            </div>
         </div>
-      </div>
 
-      {/* Formatting */}
-      <div className="bg-white p-4 rounded shadow mb-4">
-        <h2 className="text-lg font-semibold mb-2">Formatting</h2>
-        <label className="flex items-center space-x-2 cursor-pointer">
-          <input
-            type="checkbox"
-            checked={config.use_underscore}
-            onChange={(e) => updateField('use_underscore', e.target.checked)}
-            className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
-          />
-          <span>Use Underscores (e.g. <code>long_hair</code> vs <code>long hair</code>)</span>
-        </label>
-      </div>
+        <div className="mb-6">
+             <label className="flex items-center space-x-2 cursor-pointer">
+                <input
+                    type="checkbox"
+                    checked={config.use_underscore}
+                    onChange={(e) => updateField('use_underscore', e.target.checked)}
+                    className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium">Use Underscores (e.g. <code>long_hair</code>)</span>
+            </label>
+        </div>
 
-      {/* Exclusion List */}
-      <div className="bg-white p-4 rounded shadow mb-4">
-        <h2 className="text-lg font-semibold mb-2">Excluded Tags</h2>
-        <p className="text-sm text-gray-500 mb-2">Comma separated list of tags to ignore.</p>
-        <textarea
-            value={exclusionText}
-            onChange={(e) => setExclusionText(e.target.value)}
-            onBlur={() => {
-                 const list = exclusionText.split(",").map(s => s.trim()).filter(s => s.length > 0);
-                 updateField('exclusion_list', list);
-            }}
-            className="w-full p-2 border rounded h-24 font-mono text-sm"
-            placeholder="bad_hands, lowres, ..."
-        />
+        <div>
+            <h3 className="text-sm font-medium text-gray-700 mb-2">Excluded Tags</h3>
+            <textarea
+                value={exclusionText}
+                onChange={(e) => setExclusionText(e.target.value)}
+                onBlur={() => {
+                    const list = exclusionText.split(",").map(s => s.trim()).filter(s => s.length > 0);
+                    updateField('exclusion_list', list);
+                }}
+                className="w-full p-2 border rounded h-24 font-mono text-sm"
+                placeholder="bad_hands, lowres, ..."
+            />
+        </div>
       </div>
     </div>
   );

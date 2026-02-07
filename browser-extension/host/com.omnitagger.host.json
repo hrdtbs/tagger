@@ -1,0 +1,9 @@
+{
+  "name": "com.omnitagger.host",
+  "description": "OmniTagger Native Messaging Host",
+  "path": "native_host.exe",
+  "type": "stdio",
+  "allowed_origins": [
+    "chrome-extension://<EXTENSION_ID>/"
+  ]
+}
