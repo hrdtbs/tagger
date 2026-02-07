@@ -4,16 +4,15 @@ mod model_manager;
 use base64::Engine;
 use screenshots::Screen;
 use std::sync::Mutex;
-use std::time::Instant;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
-    Emitter, Manager, State,
+    Emitter, State, Manager, // Added Manager trait
     WebviewWindowBuilder, WebviewUrl, PhysicalPosition,
 };
 use tauri_plugin_global_shortcut::{Code, Modifiers, ShortcutState, Shortcut};
 use crate::tagger::Tagger;
-use image::{ImageEncoder, RgbaImage, imageops, GenericImageView, DynamicImage}; // Import ImageEncoder trait
+use image::{ImageEncoder, RgbaImage, DynamicImage}; // Import ImageEncoder trait
 use serde::{Deserialize, Serialize};
 use std::fs;
 use tauri::path::BaseDirectory;
@@ -137,27 +136,28 @@ fn create_overlay_windows(app: &tauri::AppHandle) -> Result<(), String> {
                 WebviewUrl::App("index.html".into()),
             )
             .title("Overlay")
-            .transparent(true)
+            // .transparent(true) // Removed due to compilation error
             .decorations(false)
+            .visible(false) // Start hidden
             .always_on_top(true)
             .skip_taskbar(true)
             .build()
-            .map_err(|e| e.to_string())?
+            .map_err(|e: tauri::Error| e.to_string())?
         };
 
         // Position window on the correct screen
         let pos = PhysicalPosition::new(screen.x, screen.y);
-        window.set_position(pos).map_err(|e| e.to_string())?;
+        window.set_position(pos).map_err(|e: tauri::Error| e.to_string())?;
 
         // Ensure fullscreen
-        window.set_fullscreen(true).map_err(|e| e.to_string())?;
+        window.set_fullscreen(true).map_err(|e: tauri::Error| e.to_string())?;
 
         // Ensure always on top and hidden from taskbar before showing
-        window.set_always_on_top(true).map_err(|e| e.to_string())?;
-        window.set_skip_taskbar(true).map_err(|e| e.to_string())?;
+        window.set_always_on_top(true).map_err(|e: tauri::Error| e.to_string())?;
+        window.set_skip_taskbar(true).map_err(|e: tauri::Error| e.to_string())?;
 
-        window.show().map_err(|e| e.to_string())?;
-        window.set_focus().map_err(|e| e.to_string())?;
+        window.show().map_err(|e: tauri::Error| e.to_string())?;
+        window.set_focus().map_err(|e: tauri::Error| e.to_string())?;
     }
     Ok(())
 }
@@ -223,15 +223,6 @@ async fn process_selection(
     let dyn_img = DynamicImage::ImageRgba8(img.clone());
     let cropped = dyn_img.crop_imm(x, y, w, h);
 
-    // cropped seems to be DynamicImage based on previous compiler error.
-    // If it is SubImage, we need to convert it.
-    // But let's trust the compiler error that said it is DynamicImage or try to convert if not.
-    // If cropped is SubImage, .to_image() returns ImageBuffer.
-    // If cropped is DynamicImage, it doesn't have to_image().
-    // We will assume it is DynamicImage for now, if it fails, we know it is SubImage.
-
-    // Actually, DynamicImage::crop_imm returns DynamicImage in image 0.24?
-    // Let's assume yes.
     let tags = run_inference(&state, cropped)?;
 
     // Copy to clipboard
