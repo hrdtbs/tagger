@@ -10,28 +10,38 @@
     - [x] Implement image preprocessing (Resize to 448x448, Normalize RGB).
     - [x] Implement inference logic to get tag probabilities.
     - [x] Load tag csv files (tag index to string mapping).
-- [x] **Multi-Monitor Support**:
-    - [x] Update `capture_screen` in `lib.rs` to capture all screens (currently only captures primary).
-    - [x] Stitch screens together or handle multiple windows for overlay.
-    - [x] Map frontend selection coordinates back to the correct screen/pixel.
+
+- [x] **Local File Support (Windows)**:
+    - [x] Implement CLI argument parsing in `lib.rs` to accept image file paths.
+    - [x] Trigger inference immediately when a file path is provided.
+    - [x] Add `register_context_menu` command to modify Windows Registry.
+
+- [x] **Browser Extension Support (Native Messaging)**:
+    - [x] Create `native_host` binary for Native Messaging communication.
+    - [x] Implement JSON message handling (Stdin/Stdout) in `native_host`.
+    - [x] Forward requests from `native_host` to main app (or process directly if possible).
+    - [x] Add `register_native_host` command.
 
 ## Frontend
-- [ ] **Overlay**:
-    - [x] Prevent overlay self-capture (hide window during capture).
-    - [x] Enable fullscreen mode for overlay.
-    - [x] Handle multi-monitor layouts correctly (currently assumes single viewport).
-    - [x] Improve selection UX (resize handles, move selection).
 - [x] **Settings**:
-    - [x] Persist settings to disk (config file) instead of LocalStorage.
+    - [x] Persist settings to disk (config file).
     - [x] File picker for custom ONNX models.
     - [x] Tag exclusion list management.
+    - [x] Add "Add to Windows Context Menu" button.
+    - [x] Add "Install Browser Extension" instructions.
+
+- [x] **Cleanup**:
+    - [x] Remove Overlay UI components (`Overlay.tsx`).
+    - [x] Remove Screen Capture logic (`capture_screen`, `screenshots` crate).
 
 ## Packaging & Distribution
 - [x] **Model Management**:
-    - [x] Mechanism to download models on first run or bundle them (considering file size).
+    - [x] Mechanism to download models on first run.
+- [ ] **Bundle native_host.exe**:
+    - [ ] Ensure `native_host.exe` is built and included in the installer/output directory (e.g., via `tauri.conf.json` resources or sidecar config).
 - [x] **CI/CD**:
     - [x] GitHub Actions for building Windows/macOS/Linux binaries.
 
-## Bugs / Known Issues
-- [x] Window focus: Ensure overlay window takes focus immediately on hotkey (partially addressed in skeleton).
-- [x] Coordinate mapping: Verify `object-contain` scaling logic on different aspect ratios and high DPI screens.
+## Deprecated / Removed
+- [x] **Multi-Monitor Support** (Removed).
+- [x] **Screen Capture Overlay** (Removed).
