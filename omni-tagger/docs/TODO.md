@@ -1,7 +1,7 @@
 # Development TODO List
 
 ## Project Maintenance
-- [ ] **Regular Updates**: Regularly update and organize this TODO list as tasks are completed or new requirements arise.
+- [x] **Regular Updates**: Regularly update and organize this TODO list as tasks are completed or new requirements arise.
 
 ## Core Functionality (Backend)
 - [x] **AI Inference Engine**: Replace mock implementation in `tagger.rs` with real `ort` (ONNX Runtime) integration.
@@ -22,7 +22,15 @@
     - [x] Forward requests from `native_host` to main app (or process directly if possible).
     - [x] Add `register_native_host` command.
 
-## Frontend
+## Browser Extension (Frontend)
+- [ ] **Create Extension**:
+    - [ ] Create `browser-extension` directory structure.
+    - [ ] Create `manifest.json` (Manifest V3) with `nativeMessaging` permission.
+    - [ ] Implement `background.js` (Service Worker) to register context menu ("Get Tags").
+    - [ ] Implement message passing to native host (`chrome.runtime.sendNativeMessage`).
+    - [ ] Add icons and other resources.
+
+## Frontend (App UI)
 - [x] **Settings**:
     - [x] Persist settings to disk (config file).
     - [x] File picker for custom ONNX models.
