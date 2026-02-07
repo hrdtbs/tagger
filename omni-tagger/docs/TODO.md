@@ -29,8 +29,8 @@
 ## Packaging & Distribution
 - [x] **Model Management**:
     - [x] Mechanism to download models on first run or bundle them (considering file size).
-- [ ] **CI/CD**:
-    - [ ] GitHub Actions for building Windows/macOS/Linux binaries.
+- [x] **CI/CD**:
+    - [x] GitHub Actions for building Windows/macOS/Linux binaries.
 
 ## Bugs / Known Issues
 - [x] Window focus: Ensure overlay window takes focus immediately on hotkey (partially addressed in skeleton).
