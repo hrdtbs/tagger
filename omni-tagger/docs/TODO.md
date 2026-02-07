@@ -33,5 +33,5 @@
     - [ ] GitHub Actions for building Windows/macOS/Linux binaries.
 
 ## Bugs / Known Issues
-- [ ] Window focus: Ensure overlay window takes focus immediately on hotkey (partially addressed in skeleton).
+- [x] Window focus: Ensure overlay window takes focus immediately on hotkey (partially addressed in skeleton).
 - [x] Coordinate mapping: Verify `object-contain` scaling logic on different aspect ratios and high DPI screens.

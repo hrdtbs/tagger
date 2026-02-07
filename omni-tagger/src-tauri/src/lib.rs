@@ -152,6 +152,10 @@ fn create_overlay_windows(app: &tauri::AppHandle) -> Result<(), String> {
         // Ensure fullscreen
         window.set_fullscreen(true).map_err(|e| e.to_string())?;
 
+        // Ensure always on top and hidden from taskbar before showing
+        window.set_always_on_top(true).map_err(|e| e.to_string())?;
+        window.set_skip_taskbar(true).map_err(|e| e.to_string())?;
+
         window.show().map_err(|e| e.to_string())?;
         window.set_focus().map_err(|e| e.to_string())?;
     }
