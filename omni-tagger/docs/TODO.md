@@ -23,12 +23,12 @@
     - [x] Add `register_native_host` command.
 
 ## Browser Extension (Frontend)
-- [ ] **Create Extension**:
-    - [ ] Create `browser-extension` directory structure.
-    - [ ] Create `manifest.json` (Manifest V3) with `nativeMessaging` permission.
-    - [ ] Implement `background.js` (Service Worker) to register context menu ("Get Tags").
-    - [ ] Implement message passing to native host (`chrome.runtime.sendNativeMessage`).
-    - [ ] Add icons and other resources.
+- [x] **Create Extension**:
+    - [x] Create `browser-extension` directory structure.
+    - [x] Create `manifest.json` (Manifest V3) with `nativeMessaging` permission.
+    - [x] Implement `background.js` (Service Worker) to register context menu ("Get Tags").
+    - [x] Implement message passing to native host (`chrome.runtime.sendNativeMessage`).
+    - [x] Add icons and other resources.
 
 ## Frontend (App UI)
 - [x] **Settings**:
@@ -45,8 +45,8 @@
 ## Packaging & Distribution
 - [x] **Model Management**:
     - [x] Mechanism to download models on first run.
-- [ ] **Bundle native_host.exe**:
-    - [ ] Ensure `native_host.exe` is built and included in the installer/output directory (e.g., via `tauri.conf.json` resources or sidecar config).
+- [x] **Bundle native_host.exe**:
+    - [x] Ensure `native_host.exe` is built and included in the installer/output directory (e.g., via `tauri.conf.json` resources or sidecar config).
 - [x] **CI/CD**:
     - [x] GitHub Actions for building Windows/macOS/Linux binaries.
 
