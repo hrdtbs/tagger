@@ -7,5 +7,5 @@
 /gen/schemas
 
 # External binaries/resources
-/native_host.exe
+/resources/native_host.exe
 /bin/

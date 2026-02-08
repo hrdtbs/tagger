@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { copyFileSync, existsSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, writeFileSync, mkdirSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -7,8 +7,14 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..');
 const srcTauriPath = resolve(projectRoot, 'src-tauri');
 
+// Create resources directory
+const resourcesDir = resolve(srcTauriPath, 'resources');
+if (!existsSync(resourcesDir)) {
+  mkdirSync(resourcesDir, { recursive: true });
+}
+
 const destExt = '.exe';
-const destPath = resolve(srcTauriPath, `native_host${destExt}`);
+const destPath = resolve(resourcesDir, `native_host${destExt}`);
 
 // Create a dummy file if it doesn't exist, to satisfy tauri-build during cargo build
 if (!existsSync(destPath)) {
