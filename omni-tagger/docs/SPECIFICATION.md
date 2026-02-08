@@ -39,7 +39,7 @@
     *   **Local**: Windows Context Menu -> 実行引数としてファイルパスを受け取る。
     *   **Browser**: Chrome Extension Context Menu -> Native Messaging経由でJSONメッセージを受信。
 2. **Image Loading**: ファイルパスまたはURL/Base64から画像データをメモリに展開。
-3. **Preprocessing**: 画像を 448 x 448 ピクセルにリサイズし、RGB正規化を実行。
+3. **Preprocessing**: 画像を 448 x 448 ピクセルにリサイズし、BGR正規化を実行 (WD14 SwinV2 標準)。
 4. **Inference**: ONNXモデルに入力し、各タグのスコア（0.0 ~ 1.0）を算出。
 5. **Post-processing**: 除外タグ（Sensitiveな内容など）をフィルタリングし、文字列に整形。
 6. **Action**: クリップボードへ書き込み、通知を表示。
@@ -59,3 +59,38 @@
  * **パフォーマンス**: トリガーからクリップボード完了まで 1秒以内 を目標とする。
  * **配布サイズ**: アプリ本体を 100MB以下 に抑制（モデルファイルを除く）。
  * **オフライン動作**: インターネット接続なしで全ての機能が動作すること。
+
+## 7. 技術仕様 (Technical Details)
+
+### 7.1 Native Messaging Protocol
+ブラウザ拡張機能 (`browser-extension`) とネイティブホスト (`native_host.exe`) 間の通信プロトコル（JSON over Stdin/Stdout）。
+
+**Request (Extension -> Host):**
+```json
+{
+  "url": "https://example.com/image.jpg",
+  "data": null
+}
+```
+*または*
+```json
+{
+  "url": null,
+  "data": "data:image/png;base64,..."
+}
+```
+
+**Response (Host -> Extension):**
+```json
+{
+  "status": "ok",
+  "message": "Processing started"
+}
+```
+*または*
+```json
+{
+  "status": "error",
+  "message": "Error description..."
+}
+```
