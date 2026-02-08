@@ -7,41 +7,13 @@ const __dirname = dirname(fileURLToPath(import.meta.url));
 const projectRoot = resolve(__dirname, '..');
 const srcTauriPath = resolve(projectRoot, 'src-tauri');
 
-console.log('Detecting target triple...');
-let targetTriple = '';
-try {
-  const output = execSync('rustc -vV', { encoding: 'utf-8' });
-  const match = output.match(/^host: (.+)$/m);
-  if (match) {
-    targetTriple = match[1];
-  } else {
-    throw new Error('Could not parse target triple from rustc output');
-  }
-} catch (e) {
-  console.error('Failed to get target triple:', e);
-  process.exit(1);
-}
-
-console.log(`Target triple: ${targetTriple}`);
-
-// Use src-tauri root instead of bin/ subdirectory to avoid WiX issues
-const binDir = srcTauriPath;
-
-const isWindows = process.platform === 'win32';
-const ext = isWindows ? '.exe' : '';
-const destPath = resolve(binDir, `native_host-${targetTriple}${ext}`);
+const destExt = '.exe';
+const destPath = resolve(srcTauriPath, `native_host${destExt}`);
 
 // Create a dummy file if it doesn't exist, to satisfy tauri-build during cargo build
 if (!existsSync(destPath)) {
   console.log(`Creating dummy file at ${destPath} to satisfy tauri-build...`);
-  writeFileSync(destPath, isWindows ? '' : '#!/bin/sh\necho "dummy"');
-  if (!isWindows) {
-      try {
-        execSync(`chmod +x ${destPath}`);
-      } catch (e) {
-        console.error('Failed to chmod dummy file:', e);
-      }
-  }
+  writeFileSync(destPath, '');
 }
 
 console.log('Building native_host...');
@@ -55,6 +27,8 @@ try {
   process.exit(1);
 }
 
+const isWindows = process.platform === 'win32';
+const ext = isWindows ? '.exe' : '';
 const srcPath = resolve(srcTauriPath, 'target', 'release', `native_host${ext}`);
 
 if (!existsSync(srcPath)) {
@@ -64,6 +38,7 @@ if (!existsSync(srcPath)) {
 
 console.log(`Copying ${srcPath} to ${destPath}`);
 copyFileSync(srcPath, destPath);
+
 if (!isWindows) {
     try {
       execSync(`chmod +x ${destPath}`);

@@ -6,6 +6,6 @@
 # will have schema files for capabilities auto-completion
 /gen/schemas
 
-# External binaries
-/native_host-*
+# External binaries/resources
+/native_host.exe
 /bin/
