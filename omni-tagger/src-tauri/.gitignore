@@ -7,4 +7,5 @@
 /gen/schemas
 
 # External binaries
+/native_host-*
 /bin/

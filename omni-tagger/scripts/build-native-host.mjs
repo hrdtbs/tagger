@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process';
-import { copyFileSync, mkdirSync, existsSync, writeFileSync } from 'node:fs';
+import { copyFileSync, existsSync, writeFileSync } from 'node:fs';
 import { resolve, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -24,10 +24,8 @@ try {
 
 console.log(`Target triple: ${targetTriple}`);
 
-const binDir = resolve(srcTauriPath, 'bin');
-if (!existsSync(binDir)) {
-  mkdirSync(binDir, { recursive: true });
-}
+// Use src-tauri root instead of bin/ subdirectory to avoid WiX issues
+const binDir = srcTauriPath;
 
 const isWindows = process.platform === 'win32';
 const ext = isWindows ? '.exe' : '';
@@ -48,16 +46,12 @@ if (!existsSync(destPath)) {
 
 console.log('Building native_host...');
 try {
-  // We need to set an environment variable or flag so build.rs knows to skip tauri-build check?
-  // No, tauri-build checks for externalBin existence.
-  // The dummy file solves this.
   execSync('cargo build --bin native_host --release', {
     cwd: srcTauriPath,
     stdio: 'inherit',
   });
 } catch (e) {
   console.error('Failed to build native_host:', e);
-  // Clean up dummy file if build failed? No, maybe keep it.
   process.exit(1);
 }
 
