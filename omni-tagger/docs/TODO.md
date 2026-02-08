@@ -23,12 +23,12 @@
     - [x] Add `register_native_host` command.
 
 ## Browser Extension (Frontend)
-- [ ] **Create Extension**:
-    - [ ] Create `browser-extension` directory structure.
-    - [ ] Create `manifest.json` (Manifest V3) with `nativeMessaging` permission.
-    - [ ] Implement `background.js` (Service Worker) to register context menu ("Get Tags").
-    - [ ] Implement message passing to native host (`chrome.runtime.sendNativeMessage`).
-    - [ ] Add icons and other resources.
+- [x] **Create Extension**:
+    - [x] Create `browser-extension` directory structure.
+    - [x] Create `manifest.json` (Manifest V3) with `nativeMessaging` permission.
+    - [x] Implement `background.js` (Service Worker) to register context menu ("Get Tags").
+    - [x] Implement message passing to native host (`chrome.runtime.sendNativeMessage`).
+    - [x] Add icons and other resources.
 
 ## Frontend (App UI)
 - [x] **Settings**:
