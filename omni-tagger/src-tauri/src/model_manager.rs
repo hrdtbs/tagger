@@ -1,4 +1,4 @@
-use tauri::{AppHandle, Emitter, Manager};
+use tauri::{AppHandle, Emitter};
 use std::path::Path;
 use std::fs::{self, File};
 use std::io::Write;
