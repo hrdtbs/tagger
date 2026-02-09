@@ -15,9 +15,10 @@
     - [x] Implement CLI argument parsing in `lib.rs` to accept image file paths.
     - [x] Trigger inference immediately when a file path is provided.
     - [x] Add `register_context_menu` command to modify Windows Registry.
+    - [ ] **Auto-Exit**: Implement logic to exit the application automatically after processing a file in headless mode (CLI/Context Menu).
 
 - [x] **Browser Extension Support (Native Messaging)**:
-    - [x] Create `native_host` binary for Native Messaging communication.
+    - [x] Create `native_host` binary source (`src-tauri/src/bin/native_host.rs`).
     - [x] Implement JSON message handling (Stdin/Stdout) in `native_host`.
     - [x] Forward requests from `native_host` to main app (via process spawning).
     - [x] Add `register_native_host` command.
