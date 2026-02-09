@@ -43,15 +43,6 @@
     - [x] Remove Overlay UI components (`Overlay.tsx`).
     - [x] Remove Screen Capture logic (`capture_screen`, `screenshots` crate).
 
-## Browser Extension (Frontend) - **PRIORITY**
-- [ ] **Create Extension**:
-    - [ ] Create `browser-extension` directory structure.
-    - [ ] Create `manifest.json` (Manifest V3) with `nativeMessaging` permission.
-    - [ ] Implement `background.js` (Service Worker) to register context menu ("Get Tags").
-    - [ ] Implement message passing to native host (`chrome.runtime.sendNativeMessage`).
-    - [ ] Add icons (16, 32, 48, 128 px).
-    - [ ] Add `options.html` (Optional, for extension specific settings).
-
 ## Packaging & Distribution
 - [x] **Model Management**:
     - [x] Mechanism to download models on first run.
@@ -69,10 +60,10 @@
     - [ ] Test Browser Extension communication (once implemented).
 
 ## Refactoring & Improvements
-- [ ] **Code Structure**:
-    - [ ] Split `lib.rs` into smaller modules (`registry.rs`, `processor.rs`) to improve maintainability.
-- [ ] **Error Handling**:
-    - [ ] Improve error messages in `native_host` to be more descriptive in the JSON response.
+- [x] **Code Structure**:
+    - [x] Split `lib.rs` into smaller modules (`registry.rs`, `processor.rs`) to improve maintainability.
+- [x] **Error Handling**:
+    - [x] Improve error messages in `native_host` to be more descriptive in the JSON response.
 
 ## Documentation
 - [ ] **User Guide**:
