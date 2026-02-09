@@ -3,7 +3,6 @@ use byteorder::{ReadBytesExt, WriteBytesExt, LittleEndian};
 use serde::{Deserialize, Serialize};
 use std::process::Command;
 use std::env;
-use std::path::PathBuf;
 
 #[derive(Deserialize)]
 struct Request {
