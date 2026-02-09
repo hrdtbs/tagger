@@ -5,7 +5,8 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "tsc && vite build",
+    "build": "npm run build-native-host && tsc && vite build",
+    "build-native-host": "node scripts/build-native-host.mjs",
     "preview": "vite preview",
     "tauri": "tauri"
   },

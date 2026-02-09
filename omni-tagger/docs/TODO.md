@@ -23,6 +23,14 @@
     - [x] Forward requests from `native_host` to main app (via process spawning).
     - [x] Add `register_native_host` command.
 
+## Browser Extension (Frontend)
+- [x] **Create Extension**:
+    - [x] Create `browser-extension` directory structure.
+    - [x] Create `manifest.json` (Manifest V3) with `nativeMessaging` permission.
+    - [x] Implement `background.js` (Service Worker) to register context menu ("Get Tags").
+    - [x] Implement message passing to native host (`chrome.runtime.sendNativeMessage`).
+    - [x] Add icons and other resources.
+
 ## Frontend (App UI)
 - [x] **Settings**:
     - [x] Persist settings to disk (config file).
@@ -48,7 +56,7 @@
 - [x] **Model Management**:
     - [x] Mechanism to download models on first run.
 - [ ] **Bundle native_host.exe**:
-    - [ ] Ensure `native_host.exe` is built and included in the installer/output directory.
+    - [] Ensure `native_host.exe` is built and included in the installer/output directory.
     - [ ] Verify the path resolution logic in `register_native_host` works with the installed path.
 - [x] **CI/CD**:
     - [x] GitHub Actions for building Windows/macOS/Linux binaries.
