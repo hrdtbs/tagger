@@ -1,5 +1,7 @@
 use tauri::AppHandle;
 #[cfg(target_os = "windows")]
+use tauri::{Manager, path::BaseDirectory};
+#[cfg(target_os = "windows")]
 use std::process::Command;
 
 #[tauri::command]
@@ -37,17 +39,28 @@ pub async fn register_context_menu(enable: bool) -> Result<(), String> {
 }
 
 #[tauri::command]
-pub async fn register_native_host(_app: AppHandle, extension_id: String) -> Result<(), String> {
+pub async fn register_native_host(app: AppHandle, extension_id: String) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        // 1. Get exe path and derive native_host.exe path
-        let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
-        let exe_dir = exe_path.parent().ok_or("Invalid path")?;
-        let native_host_path = exe_dir.join("native_host.exe");
+        // 1. Get native_host.exe path
+        // Try to resolve from resources first (Production)
+        let resource_path = app.path().resolve("native_host.exe", BaseDirectory::Resource)
+            .map_err(|e| format!("Failed to resolve resource path: {}", e))?;
+
+        let native_host_path = if resource_path.exists() {
+            resource_path
+        } else {
+            // Fallback: Check alongside main executable (Dev environment)
+            let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
+            let exe_dir = exe_path.parent().ok_or("Invalid path")?;
+            exe_dir.join("native_host.exe")
+        };
 
         if !native_host_path.exists() {
              return Err(format!("native_host.exe not found at {:?}", native_host_path));
         }
+
+        let exe_dir = native_host_path.parent().ok_or("Invalid path")?;
 
         // 2. Create JSON Manifest
         let manifest_content = serde_json::json!({
@@ -82,7 +95,7 @@ pub async fn register_native_host(_app: AppHandle, extension_id: String) -> Resu
     }
     #[cfg(not(target_os = "windows"))]
     {
-        let _ = _app; // suppress unused warning
+        let _ = app; // suppress unused warning
         let _ = extension_id; // suppress unused warning
         Err("Native host registration is only supported on Windows".to_string())
     }

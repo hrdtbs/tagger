@@ -1,5 +1,5 @@
 use std::io::{self, Read, Write};
-use byteorder::{ReadBytesExt, WriteBytesExt, LittleEndian};
+use byteorder::{ReadBytesExt, WriteBytesExt, NativeEndian};
 use serde::{Deserialize, Serialize};
 use std::process::Command;
 use std::env;
@@ -19,7 +19,7 @@ struct Response {
 fn main() -> io::Result<()> {
     loop {
         // Read 4 bytes length
-        let length = match io::stdin().read_u32::<LittleEndian>() {
+        let length = match io::stdin().read_u32::<NativeEndian>() {
             Ok(len) => len as usize,
             Err(ref e) if e.kind() == io::ErrorKind::UnexpectedEof => break, // Extension closed connection
             Err(e) => return Err(e),
@@ -68,11 +68,21 @@ fn handle_request(req: Request) -> Response {
     #[cfg(not(target_os = "windows"))]
     let app_name = "omni-tagger";
 
-    let app_path = exe_dir.join(app_name);
+    // Check same directory (Dev)
+    let app_path_local = exe_dir.join(app_name);
+    // Check parent directory (Prod/Resources)
+    let app_path_parent = exe_dir.parent().unwrap_or(exe_dir).join(app_name);
 
-    if !app_path.exists() {
-         return Response { status: "error".to_string(), message: format!("App executable not found at {:?}", app_path) };
-    }
+    let app_path = if app_path_local.exists() {
+        app_path_local
+    } else if app_path_parent.exists() {
+        app_path_parent
+    } else {
+         return Response {
+             status: "error".to_string(),
+             message: format!("App executable not found. Searched at {:?} and {:?}", app_path_local, app_path_parent)
+         };
+    };
 
     // Launch app
     // We use "start" on Windows to launch detached? Or just spawn.
@@ -92,7 +102,7 @@ fn send_response(response: &Response) -> io::Result<()> {
     let bytes = response_json.as_bytes();
     let length = bytes.len() as u32;
 
-    io::stdout().write_u32::<LittleEndian>(length)?;
+    io::stdout().write_u32::<NativeEndian>(length)?;
     io::stdout().write_all(bytes)?;
     io::stdout().flush()?;
     Ok(())

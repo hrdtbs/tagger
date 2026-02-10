@@ -15,7 +15,7 @@
     - [x] Implement CLI argument parsing in `lib.rs` to accept image file paths.
     - [x] Trigger inference immediately when a file path is provided.
     - [x] Add `register_context_menu` command to modify Windows Registry.
-    - [ ] **Auto-Exit**: Implement logic to exit the application automatically after processing a file in headless mode (CLI/Context Menu).
+    - [x] **Auto-Exit**: Implement logic to exit the application automatically after processing a file in headless mode (CLI/Context Menu).
 
 - [x] **Browser Extension Support (Native Messaging)**:
     - [x] Create `native_host` binary source (`src-tauri/src/bin/native_host.rs`).
@@ -55,9 +55,9 @@
 ## Packaging & Distribution
 - [x] **Model Management**:
     - [x] Mechanism to download models on first run.
-- [ ] **Bundle native_host.exe**:
-    - [] Ensure `native_host.exe` is built and included in the installer/output directory.
-    - [ ] Verify the path resolution logic in `register_native_host` works with the installed path.
+- [x] **Bundle native_host.exe**:
+    - [x] Ensure `native_host.exe` is built and included in the installer/output directory.
+    - [x] Verify the path resolution logic in `register_native_host` works with the installed path.
 - [x] **CI/CD**:
     - [x] GitHub Actions for building Windows/macOS/Linux binaries.
 
@@ -69,15 +69,15 @@
     - [ ] Test Browser Extension communication (once implemented).
 
 ## Refactoring & Improvements
-- [ ] **Code Structure**:
-    - [ ] Split `lib.rs` into smaller modules (`registry.rs`, `processor.rs`) to improve maintainability.
-- [ ] **Error Handling**:
-    - [ ] Improve error messages in `native_host` to be more descriptive in the JSON response.
+- [x] **Code Structure**:
+    - [x] Split `lib.rs` into smaller modules (`registry.rs`, `processor.rs`) to improve maintainability.
+- [x] **Error Handling**:
+    - [x] Improve error messages in `native_host` to be more descriptive in the JSON response.
 
 ## Documentation
-- [ ] **User Guide**:
-    - [ ] Update `README.md` with installation and usage instructions.
-    - [ ] Document how to load the unpacked extension in Chrome/Edge.
+- [x] **User Guide**:
+    - [x] Update `README.md` with installation and usage instructions.
+    - [x] Document how to load the unpacked extension in Chrome/Edge.
 
 ## Deprecated / Removed
 - [x] **Multi-Monitor Support** (Removed).
