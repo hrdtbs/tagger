@@ -81,6 +81,7 @@ pub fn run() {
                     if let Err(e) = process_inputs(&app_handle, args_clone).await {
                          eprintln!("Error processing inputs: {}", e);
                     }
+                    app_handle.exit(0);
                 });
                 return Ok(());
             }
