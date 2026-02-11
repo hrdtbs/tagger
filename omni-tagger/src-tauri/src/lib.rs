@@ -1,20 +1,20 @@
-mod tagger;
-mod model_manager;
 mod config;
-mod state;
-mod registry;
+mod model_manager;
 mod processor;
+mod registry;
+mod state;
+mod tagger;
 
+use crate::config::{load_config, resolve_model_path, AppConfig};
+use crate::processor::process_inputs;
+use crate::state::AppState;
+use crate::tagger::Tagger;
 use std::sync::Mutex;
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
     Emitter, Manager,
 };
-use crate::tagger::Tagger;
-use crate::config::{AppConfig, load_config, resolve_model_path};
-use crate::state::AppState;
-use crate::processor::process_inputs;
 
 #[tauri::command]
 fn greet(name: &str) -> String {
@@ -39,8 +39,10 @@ pub fn run() {
             tauri::async_runtime::spawn(async move {
                 if let Err(e) = process_inputs(&app_handle, args).await {
                     eprintln!("Error processing inputs: {}", e);
-                     use tauri_plugin_notification::NotificationExt;
-                     let _ = app_handle.notification().builder()
+                    use tauri_plugin_notification::NotificationExt;
+                    let _ = app_handle
+                        .notification()
+                        .builder()
                         .title("Error")
                         .body(format!("Processing failed: {}", e))
                         .show();
@@ -79,7 +81,7 @@ pub fn run() {
                 let args_clone = args.clone();
                 tauri::async_runtime::spawn(async move {
                     if let Err(e) = process_inputs(&app_handle, args_clone).await {
-                         eprintln!("Error processing inputs: {}", e);
+                        eprintln!("Error processing inputs: {}", e);
                     }
                     app_handle.exit(0);
                 });
@@ -99,16 +101,25 @@ pub fn run() {
                 let model_path = resolve_model_path(&app_handle_gui, &model_path_str);
                 let tags_path = resolve_model_path(&app_handle_gui, &tags_path_str);
 
-                if let Err(e) = model_manager::check_and_download_models(&app_handle_gui, &model_path, &tags_path).await {
-                     let _ = app_handle_gui.emit("model-download-error", e.clone());
-                     return;
+                if let Err(e) = model_manager::check_and_download_models(
+                    &app_handle_gui,
+                    &model_path,
+                    &tags_path,
+                )
+                .await
+                {
+                    let _ = app_handle_gui.emit("model-download-error", e.clone());
+                    return;
                 }
 
                 let state = app_handle_gui.state::<AppState>();
                 let is_loaded = state.tagger.lock().unwrap().is_some();
 
                 if !is_loaded {
-                    match Tagger::new(model_path.to_str().unwrap_or(&model_path_str), tags_path.to_str().unwrap_or(&tags_path_str)) {
+                    match Tagger::new(
+                        model_path.to_str().unwrap_or(&model_path_str),
+                        tags_path.to_str().unwrap_or(&tags_path_str),
+                    ) {
                         Ok(tagger) => {
                             *state.tagger.lock().unwrap() = Some(tagger);
                             println!("Tagger loaded successfully");

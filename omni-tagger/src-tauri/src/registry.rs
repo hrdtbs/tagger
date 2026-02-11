@@ -1,8 +1,8 @@
-use tauri::AppHandle;
-#[cfg(target_os = "windows")]
-use tauri::{Manager, path::BaseDirectory};
 #[cfg(target_os = "windows")]
 use std::process::Command;
+use tauri::AppHandle;
+#[cfg(target_os = "windows")]
+use tauri::{path::BaseDirectory, Manager};
 
 #[tauri::command]
 pub async fn register_context_menu(enable: bool) -> Result<(), String> {
@@ -15,17 +15,35 @@ pub async fn register_context_menu(enable: bool) -> Result<(), String> {
 
         if enable {
             Command::new("reg")
-                .args(&["add", "HKCU\\Software\\Classes\\*\\shell\\OmniTagger", "/ve", "/d", "Get Tags", "/f"])
+                .args(&[
+                    "add",
+                    "HKCU\\Software\\Classes\\*\\shell\\OmniTagger",
+                    "/ve",
+                    "/d",
+                    "Get Tags",
+                    "/f",
+                ])
                 .output()
                 .map_err(|e| format!("Failed to add registry key: {}", e))?;
 
             Command::new("reg")
-                .args(&["add", "HKCU\\Software\\Classes\\*\\shell\\OmniTagger\\command", "/ve", "/d", &command_str, "/f"])
+                .args(&[
+                    "add",
+                    "HKCU\\Software\\Classes\\*\\shell\\OmniTagger\\command",
+                    "/ve",
+                    "/d",
+                    &command_str,
+                    "/f",
+                ])
                 .output()
                 .map_err(|e| format!("Failed to add command key: {}", e))?;
         } else {
             Command::new("reg")
-                .args(&["delete", "HKCU\\Software\\Classes\\*\\shell\\OmniTagger", "/f"])
+                .args(&[
+                    "delete",
+                    "HKCU\\Software\\Classes\\*\\shell\\OmniTagger",
+                    "/f",
+                ])
                 .output()
                 .map_err(|e| format!("Failed to delete registry key: {}", e))?;
         }
@@ -44,7 +62,9 @@ pub async fn register_native_host(app: AppHandle, extension_id: String) -> Resul
     {
         // 1. Get native_host.exe path
         // Try to resolve from resources first (Production)
-        let resource_path = app.path().resolve("native_host.exe", BaseDirectory::Resource)
+        let resource_path = app
+            .path()
+            .resolve("native_host.exe", BaseDirectory::Resource)
             .map_err(|e| format!("Failed to resolve resource path: {}", e))?;
 
         let native_host_path = if resource_path.exists() {
@@ -57,7 +77,10 @@ pub async fn register_native_host(app: AppHandle, extension_id: String) -> Resul
         };
 
         if !native_host_path.exists() {
-             return Err(format!("native_host.exe not found at {:?}", native_host_path));
+            return Err(format!(
+                "native_host.exe not found at {:?}",
+                native_host_path
+            ));
         }
 
         let exe_dir = native_host_path.parent().ok_or("Invalid path")?;
@@ -86,7 +109,7 @@ pub async fn register_native_host(app: AppHandle, extension_id: String) -> Resul
                 "/ve",
                 "/d",
                 manifest_path.to_str().ok_or("Invalid path")?,
-                "/f"
+                "/f",
             ])
             .output()
             .map_err(|e| format!("Failed to register native host: {}", e))?;

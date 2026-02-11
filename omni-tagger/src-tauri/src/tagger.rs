@@ -1,6 +1,6 @@
 use image::{DynamicImage, GenericImageView};
 use ndarray::Array4;
-use ort::session::{Session, builder::GraphOptimizationLevel};
+use ort::session::{builder::GraphOptimizationLevel, Session};
 use std::error::Error;
 use std::fs::File;
 
@@ -34,7 +34,11 @@ impl Tagger {
         Ok(Self { session, tags })
     }
 
-    pub fn infer(&mut self, image: &DynamicImage, threshold: f32) -> Result<Vec<(String, f32)>, Box<dyn Error>> {
+    pub fn infer(
+        &mut self,
+        image: &DynamicImage,
+        threshold: f32,
+    ) -> Result<Vec<(String, f32)>, Box<dyn Error>> {
         let input_tensor = preprocess(image);
 
         // Run inference
@@ -48,7 +52,9 @@ impl Tagger {
         let mut results = Vec::new();
         // Skip first 4 tags (ratings)
         for (i, &score) in data.iter().enumerate() {
-            if i < 4 { continue; }
+            if i < 4 {
+                continue;
+            }
             if score > threshold {
                 if let Some(tag) = self.tags.get(i) {
                     results.push((tag.clone(), score));
