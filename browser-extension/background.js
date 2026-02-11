@@ -18,12 +18,20 @@ function showNotification(title, message) {
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === "omni-tagger-get-tags" && info.srcUrl) {
-    console.log("Sending URL to native host:", info.srcUrl);
+    let message = { url: null, data: null };
+
+    if (info.srcUrl.startsWith("data:")) {
+      console.log("Sending Data URI to native host");
+      message.data = info.srcUrl;
+    } else {
+      console.log("Sending URL to native host:", info.srcUrl);
+      message.url = info.srcUrl;
+    }
 
     // Send message to native host
     chrome.runtime.sendNativeMessage(
       "com.omnitagger.host",
-      { url: info.srcUrl },
+      message,
       (response) => {
         if (chrome.runtime.lastError) {
           console.error("Native Messaging Error:", chrome.runtime.lastError);

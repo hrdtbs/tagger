@@ -1,9 +1,9 @@
-use serde::{Deserialize, Serialize};
-use std::fs;
-use tauri::{State, Manager, AppHandle, path::BaseDirectory};
+use crate::model_manager;
 use crate::state::AppState;
 use crate::tagger::Tagger;
-use crate::model_manager;
+use serde::{Deserialize, Serialize};
+use std::fs;
+use tauri::{path::BaseDirectory, AppHandle, Manager, State};
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AppConfig {
@@ -61,31 +61,43 @@ pub fn resolve_model_path(app: &AppHandle, path_str: &str) -> std::path::PathBuf
     } else {
         match app.path().resolve(path_str, BaseDirectory::AppLocalData) {
             Ok(p) => p,
-            Err(_) => path.to_path_buf() // Fallback
+            Err(_) => path.to_path_buf(), // Fallback
         }
     }
 }
 
 #[tauri::command]
 pub fn get_config(state: State<'_, AppState>) -> Result<AppConfig, String> {
-    state.config.lock().map_err(|e| e.to_string()).map(|c| c.clone())
+    state
+        .config
+        .lock()
+        .map_err(|e| e.to_string())
+        .map(|c| c.clone())
 }
 
 #[tauri::command]
-pub async fn set_config(app: AppHandle, state: State<'_, AppState>, config: AppConfig) -> Result<(), String> {
+pub async fn set_config(
+    app: AppHandle,
+    state: State<'_, AppState>,
+    config: AppConfig,
+) -> Result<(), String> {
     let mut config_guard = state.config.lock().map_err(|e| e.to_string())?;
 
-    let model_changed = config_guard.model_path != config.model_path || config_guard.tags_path != config.tags_path;
+    let model_changed =
+        config_guard.model_path != config.model_path || config_guard.tags_path != config.tags_path;
 
     *config_guard = config.clone();
     save_config(&app, &config)?;
 
     if model_changed {
-         let mut tagger_guard = state.tagger.lock().map_err(|e| e.to_string())?;
-         let model_path = resolve_model_path(&app, &config.model_path);
-         let tags_path = resolve_model_path(&app, &config.tags_path);
+        let mut tagger_guard = state.tagger.lock().map_err(|e| e.to_string())?;
+        let model_path = resolve_model_path(&app, &config.model_path);
+        let tags_path = resolve_model_path(&app, &config.tags_path);
 
-         match Tagger::new(model_path.to_str().unwrap_or(&config.model_path), tags_path.to_str().unwrap_or(&config.tags_path)) {
+        match Tagger::new(
+            model_path.to_str().unwrap_or(&config.model_path),
+            tags_path.to_str().unwrap_or(&config.tags_path),
+        ) {
             Ok(tagger) => {
                 *tagger_guard = Some(tagger);
                 println!("Tagger reloaded successfully from {:?}", model_path);
@@ -95,7 +107,7 @@ pub async fn set_config(app: AppHandle, state: State<'_, AppState>, config: AppC
                 *tagger_guard = None;
                 return Err(format!("Failed to reload tagger: {}", e));
             }
-         }
+        }
     }
     Ok(())
 }
@@ -107,7 +119,11 @@ pub async fn check_model_exists(app: AppHandle, path_str: String) -> Result<bool
 }
 
 #[tauri::command]
-pub async fn download_new_model(app: AppHandle, url: String, path_str: String) -> Result<(), String> {
+pub async fn download_new_model(
+    app: AppHandle,
+    url: String,
+    path_str: String,
+) -> Result<(), String> {
     let path = resolve_model_path(&app, &path_str);
     model_manager::download_file(&app, &url, &path).await?;
     use tauri::Emitter;

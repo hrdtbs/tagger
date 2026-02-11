@@ -1,8 +1,11 @@
-use std::io::{self, Read, Write};
-use byteorder::{ReadBytesExt, WriteBytesExt, NativeEndian};
+use base64::{engine::general_purpose, Engine as _};
+use byteorder::{NativeEndian, ReadBytesExt, WriteBytesExt};
 use serde::{Deserialize, Serialize};
-use std::process::Command;
 use std::env;
+use std::fs;
+use std::io::{self, Read, Write};
+use std::process::Command;
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Deserialize)]
 struct Request {
@@ -29,7 +32,8 @@ fn main() -> io::Result<()> {
         let mut buffer = vec![0u8; length];
         io::stdin().read_exact(&mut buffer)?;
 
-        let request_str = String::from_utf8(buffer).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+        let request_str =
+            String::from_utf8(buffer).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
 
         let response = match serde_json::from_str::<Request>(&request_str) {
             Ok(req) => handle_request(req),
@@ -45,22 +49,90 @@ fn main() -> io::Result<()> {
 }
 
 fn handle_request(req: Request) -> Response {
-    let target = if let Some(url) = req.url {
-        url
+    let mut command_args = Vec::new();
+
+    if let Some(url) = req.url {
+        command_args.push("--process-url".to_string());
+        command_args.push(url);
     } else if let Some(data) = req.data {
-        data // Assuming data URI or path
+        if data.starts_with("data:") {
+            if let Some(comma_idx) = data.find(',') {
+                let header = &data[..comma_idx];
+                let base64_data = &data[comma_idx + 1..];
+
+                let extension = if header.contains("image/png") {
+                    "png"
+                } else if header.contains("image/jpeg") || header.contains("image/jpg") {
+                    "jpg"
+                } else if header.contains("image/webp") {
+                    "webp"
+                } else {
+                    "png"
+                };
+
+                match general_purpose::STANDARD.decode(base64_data) {
+                    Ok(decoded) => {
+                        let timestamp = SystemTime::now()
+                            .duration_since(UNIX_EPOCH)
+                            .unwrap()
+                            .as_millis();
+                        let temp_dir = env::temp_dir();
+                        let file_name = format!("omni_tagger_{}.{}", timestamp, extension);
+                        let file_path = temp_dir.join(file_name);
+
+                        match fs::write(&file_path, decoded) {
+                            Ok(_) => {
+                                command_args.push(file_path.to_string_lossy().into_owned());
+                            }
+                            Err(e) => {
+                                return Response {
+                                    status: "error".to_string(),
+                                    message: format!("Failed to write temp file: {}", e),
+                                }
+                            }
+                        }
+                    }
+                    Err(e) => {
+                        return Response {
+                            status: "error".to_string(),
+                            message: format!("Failed to decode base64: {}", e),
+                        }
+                    }
+                }
+            } else {
+                return Response {
+                    status: "error".to_string(),
+                    message: "Invalid data URI format".to_string(),
+                };
+            }
+        } else {
+            return Response {
+                status: "error".to_string(),
+                message: "Invalid data URI format (must start with data:)".to_string(),
+            };
+        }
     } else {
-        return Response { status: "error".to_string(), message: "No URL or data provided".to_string() };
+        return Response {
+            status: "error".to_string(),
+            message: "No URL or data provided".to_string(),
+        };
     };
 
     // Determine path to main executable
     // Assume it's in the same directory as this native_host binary
     let current_exe = match env::current_exe() {
         Ok(p) => p,
-        Err(e) => return Response { status: "error".to_string(), message: format!("Failed to get exe path: {}", e) },
+        Err(e) => {
+            return Response {
+                status: "error".to_string(),
+                message: format!("Failed to get exe path: {}", e),
+            }
+        }
     };
 
-    let exe_dir = current_exe.parent().unwrap_or_else(|| std::path::Path::new("."));
+    let exe_dir = current_exe
+        .parent()
+        .unwrap_or_else(|| std::path::Path::new("."));
 
     // Check for "omni-tagger.exe" (Windows) or "omni-tagger" (Linux/Mac)
     #[cfg(target_os = "windows")]
@@ -78,27 +150,39 @@ fn handle_request(req: Request) -> Response {
     } else if app_path_parent.exists() {
         app_path_parent
     } else {
-         return Response {
-             status: "error".to_string(),
-             message: format!("App executable not found. Searched at {:?} and {:?}", app_path_local, app_path_parent)
-         };
+        return Response {
+            status: "error".to_string(),
+            message: format!(
+                "App executable not found. Searched at {:?} and {:?}",
+                app_path_local, app_path_parent
+            ),
+        };
     };
 
     // Launch app
     // We use "start" on Windows to launch detached? Or just spawn.
     // If we spawn directly, it might be a child process.
     // We want to trigger the single instance mechanism.
-    match Command::new(&app_path)
-        .arg("--process-url")
-        .arg(&target)
-        .spawn() {
-            Ok(_) => Response { status: "ok".to_string(), message: "Processing started".to_string() },
-            Err(e) => Response { status: "error".to_string(), message: format!("Failed to launch app: {}", e) },
-        }
+    let mut cmd = Command::new(&app_path);
+    for arg in command_args {
+        cmd.arg(arg);
+    }
+
+    match cmd.spawn() {
+        Ok(_) => Response {
+            status: "ok".to_string(),
+            message: "Processing started".to_string(),
+        },
+        Err(e) => Response {
+            status: "error".to_string(),
+            message: format!("Failed to launch app: {}", e),
+        },
+    }
 }
 
 fn send_response(response: &Response) -> io::Result<()> {
-    let response_json = serde_json::to_string(response).map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
+    let response_json = serde_json::to_string(response)
+        .map_err(|e| io::Error::new(io::ErrorKind::InvalidData, e))?;
     let bytes = response_json.as_bytes();
     let length = bytes.len() as u32;
 

@@ -1,6 +1,6 @@
-use std::sync::Mutex;
-use crate::tagger::Tagger;
 use crate::config::AppConfig;
+use crate::tagger::Tagger;
+use std::sync::Mutex;
 
 pub struct AppState {
     pub tagger: Mutex<Option<Tagger>>,

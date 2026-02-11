@@ -75,5 +75,5 @@
 - [x] **Screen Capture Overlay** (Removed).
 
 ## Future Improvements
-- [ ] **Data URI Support**:
-    - [ ] Implement handling of base64/data URIs from the browser extension (currently only URLs are supported).
+- [x] **Data URI Support**:
+    - [x] Implement handling of base64/data URIs from the browser extension (currently only URLs are supported).
