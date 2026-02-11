@@ -57,7 +57,7 @@
     - [ ] Test "Add to Context Menu" adds registry keys correctly.
     - [ ] Test Right-click > "Get Tags" on an image file launches the app and copies tags.
     - [ ] Test "Register Host" adds the manifest file and registry key.
-    - [ ] Test Browser Extension communication (once implemented).
+    - [ ] Test Browser Extension communication (URL handling).
 
 ## Refactoring & Improvements
 - [x] **Code Structure**:
@@ -73,3 +73,7 @@
 ## Deprecated / Removed
 - [x] **Multi-Monitor Support** (Removed).
 - [x] **Screen Capture Overlay** (Removed).
+
+## Future Improvements
+- [ ] **Data URI Support**:
+    - [ ] Implement handling of base64/data URIs from the browser extension (currently only URLs are supported).
