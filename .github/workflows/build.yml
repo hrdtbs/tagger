@@ -51,20 +51,41 @@ jobs:
         id: version
         shell: bash
         run: |
-          VERSION=$(node -p "require('./omni-tagger/package.json').version")
+          # Extract the base version from package.json (e.g., "0.1.0")
+          BASE_VERSION=$(node -p "require('./omni-tagger/package.json').version")
+
+          # 1. Create the TAG Version (User-facing, descriptive)
+          # Format: v0.1.0-YYYYMMDD-SHA
           DATE=$(date -u +%Y%m%d)
           SHA=$(git rev-parse --short HEAD)
-          NEW_VERSION="${VERSION}-${DATE}-${SHA}"
-          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
-          echo "Generated version: ${NEW_VERSION}"
+          TAG_VERSION="${BASE_VERSION}-${DATE}-${SHA}"
+
+          # 2. Create the APP Version (Internal, compliant with MSI restrictions)
+          # Format: Major.Minor.RunNumber (where RunNumber < 65535)
+          # We parse Major and Minor from BASE_VERSION
+          MAJOR=$(echo $BASE_VERSION | cut -d. -f1)
+          MINOR=$(echo $BASE_VERSION | cut -d. -f2)
+          # Use github.run_number for the patch/build component.
+          # Note: This assumes run_number < 65535. If it exceeds, we might need modulo logic.
+          APP_VERSION="${MAJOR}.${MINOR}.${{ github.run_number }}"
+
+          echo "tag_version=${TAG_VERSION}" >> $GITHUB_OUTPUT
+          echo "app_version=${APP_VERSION}" >> $GITHUB_OUTPUT
+
+          echo "Generated Tag Version: ${TAG_VERSION}"
+          echo "Generated App Version: ${APP_VERSION}"
 
       - name: Update version in files
         shell: bash
         run: |
-          NEW_VERSION="${{ steps.version.outputs.new_version }}"
-          echo "Updating version to ${NEW_VERSION} in package.json and tauri.conf.json"
-          node -e "const fs = require('fs'); const pkg = require('./omni-tagger/package.json'); pkg.version = '${NEW_VERSION}'; fs.writeFileSync('./omni-tagger/package.json', JSON.stringify(pkg, null, 2));"
-          node -e "const fs = require('fs'); const conf = require('./omni-tagger/src-tauri/tauri.conf.json'); conf.version = '${NEW_VERSION}'; fs.writeFileSync('./omni-tagger/src-tauri/tauri.conf.json', JSON.stringify(conf, null, 2));"
+          APP_VERSION="${{ steps.version.outputs.app_version }}"
+          echo "Updating internal app version to ${APP_VERSION} in package.json and tauri.conf.json"
+
+          # Update package.json
+          node -e "const fs = require('fs'); const pkg = require('./omni-tagger/package.json'); pkg.version = '${APP_VERSION}'; fs.writeFileSync('./omni-tagger/package.json', JSON.stringify(pkg, null, 2));"
+
+          # Update tauri.conf.json
+          node -e "const fs = require('fs'); const conf = require('./omni-tagger/src-tauri/tauri.conf.json'); conf.version = '${APP_VERSION}'; fs.writeFileSync('./omni-tagger/src-tauri/tauri.conf.json', JSON.stringify(conf, null, 2));"
 
       - name: build tauri app
         uses: tauri-apps/tauri-action@v0
@@ -72,8 +93,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: omni-tagger
-          tagName: v${{ steps.version.outputs.new_version }}
-          releaseName: "App v${{ steps.version.outputs.new_version }}"
-          releaseBody: "See the assets to download this version and install."
+          tagName: v${{ steps.version.outputs.tag_version }}
+          releaseName: "App v${{ steps.version.outputs.tag_version }}"
+          releaseBody: "See the assets to download this version and install.\n\nInternal Version: ${{ steps.version.outputs.app_version }}"
           releaseDraft: false
           prerelease: false
+        if: github.event_name != 'pull_request'
