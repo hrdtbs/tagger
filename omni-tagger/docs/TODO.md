@@ -6,7 +6,7 @@
 ## Core Functionality (Backend)
 - [x] **AI Inference Engine**: Replace mock implementation in `tagger.rs` with real `ort` (ONNX Runtime) integration.
     - [x] Add `ort` dependency to `src-tauri/Cargo.toml`.
-    - [x] Load .onnx models (WD14 SwinV2, ConvNext).
+    - [x] Load .onnx models (WD14 SwinV2, ConvNext, ConvNextV2).
     - [x] Implement image preprocessing (Resize to 448x448, Normalize BGR).
     - [x] Implement inference logic to get tag probabilities.
     - [x] Load tag csv files (tag index to string mapping).
@@ -35,6 +35,7 @@
 ## Frontend (App UI)
 - [x] **Settings**:
     - [x] Persist settings to disk (config file).
+    - [x] Model Preset Selection (SwinV2, ConvNext, ConvNextV2).
     - [x] File picker for custom ONNX models.
     - [x] Tag exclusion list management.
     - [x] Add "Add to Windows Context Menu" button.
