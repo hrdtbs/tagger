@@ -54,7 +54,7 @@
 - [x] **CI/CD**:
     - [x] GitHub Actions for building Windows/macOS/Linux binaries.
 
-## Quality Assurance / Verification
+## Quality Assurance / Verification (Pending)
 - [ ] **Manual Verification (Windows)**:
     - [ ] Test "Add to Context Menu" adds registry keys correctly.
     - [ ] Test Right-click > "Get Tags" on an image file launches the app and copies tags.
@@ -62,11 +62,16 @@
     - [ ] Test Browser Extension communication (URL handling).
     - [ ] Test Browser Extension communication (Data URI handling).
 
-## Non-Functional Requirements (from Spec)
+## Non-Functional Requirements (Pending Validation)
 - [ ] **Performance**: Verify tag generation completes within 1 second.
 - [ ] **Size**: Verify application size is under 100MB (excluding models).
 - [ ] **Offline Operation**: Verify core features work without internet (after initial model download).
 
-## Deprecated / Removed
-- [x] **Multi-Monitor Support** (Removed).
-- [x] **Screen Capture Overlay** (Removed).
+## Future Improvements / Cross-Platform
+- [ ] **Linux / macOS Integration**:
+    - [ ] Implement Context Menu registration for Linux (Nautilus/Dolphin) and macOS (Finder).
+    - [ ] Implement Native Messaging Host registration for Linux/macOS.
+- [ ] **Firefox Support**:
+    - [ ] Verify manifest compatibility or create separate manifest for Firefox.
+- [ ] **Offline Installer**:
+    - [ ] Create an installer variant that bundles the default models to avoid download requirement.
