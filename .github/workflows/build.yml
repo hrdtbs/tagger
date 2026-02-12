@@ -4,9 +4,16 @@ on:
   push:
     branches:
       - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
   pull_request:
     branches:
       - main
+    paths-ignore:
+      - '**.md'
+      - 'docs/**'
+  workflow_dispatch:
 
 jobs:
   build-tauri:
@@ -40,14 +47,33 @@ jobs:
         working-directory: omni-tagger
         run: npm install
 
+      - name: Generate version
+        id: version
+        shell: bash
+        run: |
+          VERSION=$(node -p "require('./omni-tagger/package.json').version")
+          DATE=$(date -u +%Y%m%d)
+          SHA=$(git rev-parse --short HEAD)
+          NEW_VERSION="${VERSION}-${DATE}-${SHA}"
+          echo "new_version=${NEW_VERSION}" >> $GITHUB_OUTPUT
+          echo "Generated version: ${NEW_VERSION}"
+
+      - name: Update version in files
+        shell: bash
+        run: |
+          NEW_VERSION="${{ steps.version.outputs.new_version }}"
+          echo "Updating version to ${NEW_VERSION} in package.json and tauri.conf.json"
+          node -e "const fs = require('fs'); const pkg = require('./omni-tagger/package.json'); pkg.version = '${NEW_VERSION}'; fs.writeFileSync('./omni-tagger/package.json', JSON.stringify(pkg, null, 2));"
+          node -e "const fs = require('fs'); const conf = require('./omni-tagger/src-tauri/tauri.conf.json'); conf.version = '${NEW_VERSION}'; fs.writeFileSync('./omni-tagger/src-tauri/tauri.conf.json', JSON.stringify(conf, null, 2));"
+
       - name: build tauri app
         uses: tauri-apps/tauri-action@v0
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           projectPath: omni-tagger
-          tagName: app-v__VERSION__
-          releaseName: "App v__VERSION__"
+          tagName: v${{ steps.version.outputs.new_version }}
+          releaseName: "App v${{ steps.version.outputs.new_version }}"
           releaseBody: "See the assets to download this version and install."
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
