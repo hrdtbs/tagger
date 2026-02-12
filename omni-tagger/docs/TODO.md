@@ -22,6 +22,7 @@
     - [x] Implement JSON message handling (Stdin/Stdout) in `native_host`.
     - [x] Forward requests from `native_host` to main app (via process spawning).
     - [x] Add `register_native_host` command.
+    - [x] **Data URI Support**: Implement handling of base64/data URIs from the browser extension.
 
 ## Browser Extension (Frontend)
 - [x] **Create Extension**:
@@ -58,22 +59,13 @@
     - [ ] Test Right-click > "Get Tags" on an image file launches the app and copies tags.
     - [ ] Test "Register Host" adds the manifest file and registry key.
     - [ ] Test Browser Extension communication (URL handling).
+    - [ ] Test Browser Extension communication (Data URI handling).
 
-## Refactoring & Improvements
-- [x] **Code Structure**:
-    - [x] Split `lib.rs` into smaller modules (`registry.rs`, `processor.rs`) to improve maintainability.
-- [x] **Error Handling**:
-    - [x] Improve error messages in `native_host` to be more descriptive in the JSON response.
-
-## Documentation
-- [x] **User Guide**:
-    - [x] Update `README.md` with installation and usage instructions.
-    - [x] Document how to load the unpacked extension in Chrome/Edge.
+## Non-Functional Requirements (from Spec)
+- [ ] **Performance**: Verify tag generation completes within 1 second.
+- [ ] **Size**: Verify application size is under 100MB (excluding models).
+- [ ] **Offline Operation**: Verify core features work without internet (after initial model download).
 
 ## Deprecated / Removed
 - [x] **Multi-Monitor Support** (Removed).
 - [x] **Screen Capture Overlay** (Removed).
-
-## Future Improvements
-- [x] **Data URI Support**:
-    - [x] Implement handling of base64/data URIs from the browser extension (currently only URLs are supported).
