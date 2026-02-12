@@ -24,6 +24,14 @@
     - [x] Add `register_native_host` command.
     - [x] **Data URI Support**: Implement handling of base64/data URIs from the browser extension.
 
+## Linux/macOS Support (Future)
+- [ ] **Native Host Support**:
+    - [ ] Implement `native_host` build and bundling for Linux/macOS.
+    - [ ] Implement `register_native_host` logic for Linux/macOS (different manifest locations).
+- [ ] **Context Menu Support**:
+    - [ ] Implement context menu registration for Linux (e.g., Nautilus scripts or .desktop actions).
+    - [ ] Implement context menu registration for macOS (Finder extensions or Automator services).
+
 ## Browser Extension (Frontend)
 - [x] **Create Extension**:
     - [x] Create `browser-extension` directory structure.
