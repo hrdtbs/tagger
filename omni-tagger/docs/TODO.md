@@ -21,8 +21,9 @@
     - [x] Create `native_host` binary source (`src-tauri/src/bin/native_host.rs`).
     - [x] Implement JSON message handling (Stdin/Stdout) in `native_host`.
     - [x] Forward requests from `native_host` to main app (via process spawning).
-    - [x] Add `register_native_host` command.
+    - [x] Add `register_native_host` command (Currently Chrome/Windows only).
     - [x] **Data URI Support**: Implement handling of base64/data URIs from the browser extension.
+    - [ ] **Cleanup**: Implement cleanup of temporary files created by Data URI handling.
 
 ## Linux/macOS Support (Future)
 - [ ] **Native Host Support**:
@@ -79,7 +80,8 @@
 - [ ] **Linux / macOS Integration**:
     - [ ] Implement Context Menu registration for Linux (Nautilus/Dolphin) and macOS (Finder).
     - [ ] Implement Native Messaging Host registration for Linux/macOS.
-- [ ] **Firefox Support**:
-    - [ ] Verify manifest compatibility or create separate manifest for Firefox.
+- [ ] **Multi-Browser Support**:
+    - [ ] Implement registration logic for Edge, Brave, and other Chromium browsers (Windows).
+    - [ ] **Firefox Support**: Verify manifest compatibility and implement registration key/manifest location logic.
 - [ ] **Offline Installer**:
     - [ ] Create an installer variant that bundles the default models to avoid download requirement.

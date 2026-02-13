@@ -12,10 +12,11 @@
 ### 2.2 ブラウザ連携 (Chrome/Edge/Firefox)
  * **ブラウザ拡張機能**: 専用の拡張機能を導入し、Webページ上の画像を右クリックして「Get Tags」を選択。
  * **Native Messaging**: ブラウザからデスクトップアプリへ直接画像データ（またはURL）を送信し、ローカルで推論を実行。
+   * *注: 自動登録機能(`register_native_host`)は現在Windows版Chromeのみ対応。他ブラウザは手動設定または将来対応。*
 
 ### 2.3 AI解析（Tagger）機能
  * **ローカル推論**: プライバシーと速度のため、外部APIを使わずローカルのONNX Runtimeで実行。
- * **対応モデル**: WD14 Tagger (SwinV2/ConvNext等) を標準搭載。
+ * **対応モデル**: WD14 Tagger (SwinV2, ConvNext, ConvNextV2) をサポート。
  * **しきい値調整**: 抽出するタグの確信度（Probability）の下限を設定可能（例: P > 0.35）。
 
 ### 2.4 出力機能
@@ -63,7 +64,8 @@
 ## 7. 技術仕様 (Technical Details)
 
 ### 7.1 Native Messaging Protocol
-ブラウザ拡張機能 (`browser-extension`) とネイティブホスト (`native_host.exe`) 間の通信プロトコル（JSON over Stdin/Stdout）。
+ブラウザ拡張機能 (`browser-extension`) とネイティブホスト (`native_host.exe`) 間の通信プロトコル。
+標準入力(Stdin)および標準出力(Stdout)を使用し、各メッセージは **32-bit Native Endian Length Prefix** + **JSON Payload (UTF-8)** の形式で送受信される。
 
 **Request (Extension -> Host):**
 ```json
