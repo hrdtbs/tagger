@@ -11,11 +11,11 @@
     - [x] Implement inference logic to get tag probabilities.
     - [x] Load tag csv files (tag index to string mapping).
 
-- [x] **Local File Support (Windows)**:
+- [x] **Local File Support**:
     - [x] Implement CLI argument parsing in `lib.rs` to accept image file paths.
     - [x] Trigger inference immediately when a file path is provided.
-    - [x] Add `register_context_menu` command to modify Windows Registry.
-    - [x] **Auto-Exit**: Implement logic to exit the application automatically after processing a file in headless mode (CLI/Context Menu).
+    - [x] Add `register_context_menu` command (Windows Registry / Linux Desktop Entry).
+    - [x] **Auto-Exit**: Implement logic to exit the application automatically after processing a file in headless mode.
 
 - [x] **Browser Extension Support (Native Messaging)**:
     - [x] Create `native_host` binary source (`src-tauri/src/bin/native_host.rs`).
@@ -24,13 +24,12 @@
     - [x] Add `register_native_host` command.
     - [x] **Data URI Support**: Implement handling of base64/data URIs from the browser extension.
 
-## Linux/macOS Support (Future)
-- [ ] **Native Host Support**:
-    - [ ] Implement `native_host` build and bundling for Linux/macOS.
-    - [ ] Implement `register_native_host` logic for Linux/macOS (different manifest locations).
-- [ ] **Context Menu Support**:
-    - [ ] Implement context menu registration for Linux (e.g., Nautilus scripts or .desktop actions).
-    - [ ] Implement context menu registration for macOS (Finder extensions or Automator services).
+## Linux Support
+- [x] **Native Host Support**:
+    - [x] Implement `native_host` build and bundling for Linux.
+    - [x] Implement `register_native_host` logic for Linux (Manifest in `~/.config/...`).
+- [x] **Context Menu Support**:
+    - [x] Implement context menu registration for Linux (.desktop actions in `~/.local/share/applications`).
 
 ## Browser Extension (Frontend)
 - [x] **Create Extension**:
@@ -46,7 +45,7 @@
     - [x] Model Preset Selection (SwinV2, ConvNext, ConvNextV2).
     - [x] File picker for custom ONNX models.
     - [x] Tag exclusion list management.
-    - [x] Add "Add to Windows Context Menu" button.
+    - [x] Add "Add to Context Menu" button.
     - [x] Add "Install Browser Extension" instructions.
 
 - [x] **Cleanup**:
@@ -69,6 +68,11 @@
     - [ ] Test "Register Host" adds the manifest file and registry key.
     - [ ] Test Browser Extension communication (URL handling).
     - [ ] Test Browser Extension communication (Data URI handling).
+- [ ] **Manual Verification (Linux)**:
+    - [ ] Test "Add to Context Menu" creates `~/.local/share/applications/omni-tagger-context.desktop`.
+    - [ ] Test Right-click > "Get Tags" (via File Manager supporting Desktop Actions) launches app.
+    - [ ] Test "Register Host" creates manifest in `~/.config/google-chrome/NativeMessagingHosts/`.
+    - [ ] Test Browser Extension communication.
 
 ## Non-Functional Requirements (Pending Validation)
 - [ ] **Performance**: Verify tag generation completes within 1 second.
@@ -76,9 +80,9 @@
 - [ ] **Offline Operation**: Verify core features work without internet (after initial model download).
 
 ## Future Improvements / Cross-Platform
-- [ ] **Linux / macOS Integration**:
-    - [ ] Implement Context Menu registration for Linux (Nautilus/Dolphin) and macOS (Finder).
-    - [ ] Implement Native Messaging Host registration for Linux/macOS.
+- [ ] **macOS Integration**:
+    - [ ] Implement Context Menu registration for macOS (Finder extensions or Automator services).
+    - [ ] Implement Native Messaging Host registration for macOS.
 - [ ] **Firefox Support**:
     - [ ] Verify manifest compatibility or create separate manifest for Firefox.
 - [ ] **Offline Installer**:

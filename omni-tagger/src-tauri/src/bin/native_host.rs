@@ -145,18 +145,37 @@ fn handle_request(req: Request) -> Response {
     // Check parent directory (Prod/Resources)
     let app_path_parent = exe_dir.parent().unwrap_or(exe_dir).join(app_name);
 
-    let app_path = if app_path_local.exists() {
-        app_path_local
+    let mut found_path = None;
+
+    if app_path_local.exists() {
+        found_path = Some(app_path_local);
     } else if app_path_parent.exists() {
-        app_path_parent
-    } else {
-        return Response {
-            status: "error".to_string(),
-            message: format!(
-                "App executable not found. Searched at {:?} and {:?}",
-                app_path_local, app_path_parent
-            ),
-        };
+        found_path = Some(app_path_parent);
+    }
+
+    #[cfg(not(target_os = "windows"))]
+    if found_path.is_none() {
+        // 3. Check /usr/bin and /usr/local/bin
+        let p1 = std::path::PathBuf::from("/usr/bin").join(app_name);
+        let p2 = std::path::PathBuf::from("/usr/local/bin").join(app_name);
+        if p1.exists() {
+            found_path = Some(p1);
+        } else if p2.exists() {
+            found_path = Some(p2);
+        }
+    }
+
+    let app_path = match found_path {
+        Some(p) => p,
+        None => {
+            return Response {
+                status: "error".to_string(),
+                message: format!(
+                    "App executable not found. Searched at {:?}, {:?} (and system paths on Linux)",
+                    app_path_local, app_path_parent
+                ),
+            };
+        }
     };
 
     // Launch app
