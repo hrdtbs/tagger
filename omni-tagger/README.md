@@ -22,24 +22,27 @@ OmniTagger is a desktop application powered by Tauri and ONNX Runtime to automat
 1. In OmniTagger, go to **Settings**.
 2. Click **Install Browser Extension**.
 3. Follow the instructions to load the unpacked extension in Chrome/Edge:
-    - Go to `chrome://extensions`.
-    - Enable **Developer mode**.
-    - Click **Load unpacked**.
-    - Select the `browser-extension` folder (usually located in the installation directory or source code).
+   - Go to `chrome://extensions`.
+   - Enable **Developer mode**.
+   - Click **Load unpacked**.
+   - Select the `browser-extension` folder (usually located in the installation directory or source code).
 
 ## Usage
 
 ### GUI
+
 - Launch the application.
 - Configure settings (Model, Threshold, Exclusion List).
 
 ### Context Menu (Windows)
+
 1. In Settings, click **Add to Context Menu**.
 2. Right-click on an image file in File Explorer.
 3. Select **Get Tags**.
 4. The application will process the image and copy the tags to your clipboard. A notification will appear when done.
 
 ### Browser Extension
+
 1. Right-click on an image in your browser.
 2. Select **OmniTagger > Get Tags**.
 3. The application will process the image URL and copy tags to your clipboard.
@@ -47,11 +50,13 @@ OmniTagger is a desktop application powered by Tauri and ONNX Runtime to automat
 ## Development
 
 ### Prerequisites
+
 - Rust (latest stable)
 - Node.js (v18+)
 - VS Code (recommended)
 
 ### Setup
+
 1. Clone the repository.
 2. Install frontend dependencies:
    ```bash
@@ -64,11 +69,15 @@ OmniTagger is a desktop application powered by Tauri and ONNX Runtime to automat
    ```
 
 ### Building
+
 To build the application for production:
+
 ```bash
 npm run tauri build
 ```
+
 This will build the frontend, the Rust backend, and the `native_host` binary.
 
 ## License
+
 MIT

@@ -46,10 +46,10 @@ console.log(`Copying ${srcPath} to ${destPath}`);
 copyFileSync(srcPath, destPath);
 
 if (!isWindows) {
-    try {
-      execSync(`chmod +x ${destPath}`);
-    } catch (e) {
-      console.error('Failed to chmod binary:', e);
-    }
+  try {
+    execSync(`chmod +x ${destPath}`);
+  } catch (e) {
+    console.error('Failed to chmod binary:', e);
+  }
 }
 console.log('Done.');

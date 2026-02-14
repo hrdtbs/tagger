@@ -1,11 +1,9 @@
-use tauri::AppHandle;
-use tauri::{path::BaseDirectory, Manager};
-#[cfg(target_os = "windows")]
-use std::process::Command;
 #[cfg(target_os = "linux")]
 use std::fs;
-#[cfg(target_os = "linux")]
-use std::path::PathBuf;
+#[cfg(target_os = "windows")]
+use std::process::Command;
+use tauri::AppHandle;
+use tauri::{path::BaseDirectory, Manager};
 
 #[tauri::command]
 pub async fn register_context_menu(app: AppHandle, enable: bool) -> Result<(), String> {
@@ -56,11 +54,14 @@ pub async fn register_context_menu(app: AppHandle, enable: bool) -> Result<(), S
     #[cfg(target_os = "linux")]
     {
         // On Linux, we create a .desktop file in ~/.local/share/applications/
-        let data_local_dir = app.path().data_local_dir().map_err(|e| e.to_string())?;
+        let data_local_dir = app
+            .path()
+            .data_dir()
+            .map_err(|e: tauri::Error| e.to_string())?;
         let applications_dir = data_local_dir.join("applications");
 
         if !applications_dir.exists() {
-             fs::create_dir_all(&applications_dir).map_err(|e| e.to_string())?;
+            fs::create_dir_all(&applications_dir).map_err(|e| e.to_string())?;
         }
 
         let desktop_file_path = applications_dir.join("omni-tagger-context.desktop");
@@ -71,11 +72,11 @@ pub async fn register_context_menu(app: AppHandle, enable: bool) -> Result<(), S
 
             // Generate content
             let content = generate_desktop_file_content(exe_str);
-            fs::write(&desktop_file_path, content).map_err(|e| format!("Failed to write desktop file: {}", e))?;
-        } else {
-            if desktop_file_path.exists() {
-                fs::remove_file(&desktop_file_path).map_err(|e| format!("Failed to remove desktop file: {}", e))?;
-            }
+            fs::write(&desktop_file_path, content)
+                .map_err(|e| format!("Failed to write desktop file: {}", e))?;
+        } else if desktop_file_path.exists() {
+            fs::remove_file(&desktop_file_path)
+                .map_err(|e| format!("Failed to remove desktop file: {}", e))?;
         }
         Ok(())
     }
@@ -90,7 +91,7 @@ pub async fn register_context_menu(app: AppHandle, enable: bool) -> Result<(), S
 #[cfg(target_os = "linux")]
 fn generate_desktop_file_content(exe_path: &str) -> String {
     format!(
-r#"[Desktop Entry]
+        r#"[Desktop Entry]
 Type=Application
 Name=OmniTagger
 Comment=Get AI Tags for images
@@ -104,7 +105,9 @@ Actions=GetTags;
 [Desktop Action GetTags]
 Name=Get Tags
 Exec="{}" %F
-"#, exe_path, exe_path)
+"#,
+        exe_path, exe_path
+    )
 }
 
 #[tauri::command]
@@ -180,15 +183,19 @@ pub async fn register_native_host(app: AppHandle, extension_id: String) -> Resul
         let native_host_path = if resource_path.exists() {
             resource_path
         } else {
-             // Fallback dev path logic similar to Windows but checking for no-extension too
-             let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
-             let exe_dir = exe_path.parent().ok_or("Invalid path")?;
-             let p = exe_dir.join("native_host");
-             if p.exists() { p } else { exe_dir.join("native_host.exe") }
+            // Fallback dev path logic similar to Windows but checking for no-extension too
+            let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
+            let exe_dir = exe_path.parent().ok_or("Invalid path")?;
+            let p = exe_dir.join("native_host");
+            if p.exists() {
+                p
+            } else {
+                exe_dir.join("native_host.exe")
+            }
         };
 
         if !native_host_path.exists() {
-             return Err(format!("native_host not found at {:?}", native_host_path));
+            return Err(format!("native_host not found at {:?}", native_host_path));
         }
 
         // 2. Generate Manifest Content
@@ -211,13 +218,14 @@ pub async fn register_native_host(app: AppHandle, extension_id: String) -> Resul
             // Only write if the parent browser directory exists (to avoid polluting unrelated configs)
             if let Some(parent) = dir.parent() {
                 if parent.exists() {
-                     if !dir.exists() {
-                         let _ = fs::create_dir_all(&dir);
-                     }
-                     let manifest_path = dir.join("com.omnitagger.host.json");
-                     let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
-                     serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
-                     success_count += 1;
+                    if !dir.exists() {
+                        let _ = fs::create_dir_all(&dir);
+                    }
+                    let manifest_path = dir.join("com.omnitagger.host.json");
+                    let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
+                    serde_json::to_writer_pretty(file, &manifest_content)
+                        .map_err(|e| e.to_string())?;
+                    success_count += 1;
                 }
             }
         }
@@ -227,16 +235,16 @@ pub async fn register_native_host(app: AppHandle, extension_id: String) -> Resul
         // But for now let's stick to Chromium based browsers.
 
         if success_count == 0 {
-             // Maybe no browser installed or paths differ.
-             // We can force create google-chrome path?
-             // Let's create the google-chrome one by default just in case.
-             let default_dir = config_dir.join("google-chrome/NativeMessagingHosts");
-             if !default_dir.exists() {
-                 let _ = fs::create_dir_all(&default_dir);
-             }
-             let manifest_path = default_dir.join("com.omnitagger.host.json");
-             let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
-             serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
+            // Maybe no browser installed or paths differ.
+            // We can force create google-chrome path?
+            // Let's create the google-chrome one by default just in case.
+            let default_dir = config_dir.join("google-chrome/NativeMessagingHosts");
+            if !default_dir.exists() {
+                let _ = fs::create_dir_all(&default_dir);
+            }
+            let manifest_path = default_dir.join("com.omnitagger.host.json");
+            let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
+            serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
         }
 
         Ok(())
@@ -250,8 +258,13 @@ pub async fn register_native_host(app: AppHandle, extension_id: String) -> Resul
 }
 
 #[cfg(target_os = "linux")]
-fn generate_linux_manifest(native_host_path: &std::path::Path, extension_id: &str) -> Result<serde_json::Value, String> {
-    let path_str = native_host_path.to_str().ok_or("Invalid native host path")?;
+fn generate_linux_manifest(
+    native_host_path: &std::path::Path,
+    extension_id: &str,
+) -> Result<serde_json::Value, String> {
+    let path_str = native_host_path
+        .to_str()
+        .ok_or("Invalid native host path")?;
     Ok(serde_json::json!({
         "name": "com.omnitagger.host",
         "description": "OmniTagger Native Messaging Host",
@@ -262,7 +275,6 @@ fn generate_linux_manifest(native_host_path: &std::path::Path, extension_id: &st
         ]
     }))
 }
-
 
 #[cfg(test)]
 mod tests {
