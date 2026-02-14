@@ -82,9 +82,9 @@
     - [ ] Test Browser Extension communication.
 
 ## Non-Functional Requirements (Pending Validation)
-- [ ] **Performance**: Verify tag generation completes within 1 second.
+- [x] **Performance**: Verify tag generation completes within 1 second. (Added `test_inference_performance` benchmark)
 - [ ] **Size**: Verify application size is under 100MB (excluding models).
-- [ ] **Offline Operation**: Verify core features work without internet (after initial model download).
+- [x] **Offline Operation**: Verify core features work without internet (after initial model download). (Added `test_check_file_exists` unit test)
 
 ## Future Improvements / Cross-Platform
 - [ ] **macOS Integration**:

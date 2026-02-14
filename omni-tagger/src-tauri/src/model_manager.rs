@@ -88,3 +88,31 @@ pub async fn download_file(app: &AppHandle, url: &str, dest: &Path) -> Result<()
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::path::PathBuf;
+
+    #[test]
+    fn test_check_file_exists() {
+        let temp_dir = std::env::temp_dir();
+        let file_path = temp_dir.join("omni_tagger_test_model.onnx");
+
+        // Ensure file does not exist initially
+        if file_path.exists() {
+            fs::remove_file(&file_path).unwrap();
+        }
+
+        assert!(!check_file_exists(&file_path));
+
+        // Create dummy file
+        fs::write(&file_path, "dummy content").unwrap();
+
+        assert!(check_file_exists(&file_path));
+
+        // Clean up
+        fs::remove_file(file_path).unwrap();
+    }
+}

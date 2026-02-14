@@ -148,9 +148,9 @@ fn handle_request(req: Request) -> Response {
     let mut found_path = None;
 
     if app_path_local.exists() {
-        found_path = Some(app_path_local);
+        found_path = Some(app_path_local.clone());
     } else if app_path_parent.exists() {
-        found_path = Some(app_path_parent);
+        found_path = Some(app_path_parent.clone());
     }
 
     #[cfg(not(target_os = "windows"))]
