@@ -18,6 +18,10 @@
     - [x] Add `register_context_menu` command (Windows Registry / Linux Desktop Entry).
     - [x] **Auto-Exit**: Implement logic to exit the application automatically after processing a file in headless mode.
 
+- [x] **Output Functionality**:
+    - [x] Copy generated tags to Clipboard.
+    - [x] Show desktop notification on completion.
+
 - [x] **Browser Extension Support (Native Messaging)**:
     - [x] Create `native_host` binary source (`src-tauri/src/bin/native_host.rs`).
     - [x] Implement JSON message handling (Stdin/Stdout) in `native_host`.
@@ -45,6 +49,8 @@
     - [x] Persist settings to disk (config file).
     - [x] Model Preset Selection (SwinV2, ConvNext, ConvNextV2).
     - [x] File picker for custom ONNX models.
+    - [x] **Confidence Threshold adjustment**.
+    - [x] **Tag Formatting (underscores)**.
     - [x] Tag exclusion list management.
     - [x] Add "Add to Context Menu" button.
     - [x] Add "Install Browser Extension" instructions.
