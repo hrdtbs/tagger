@@ -2,6 +2,7 @@
 
 ## Project Maintenance
 - [x] **Regular Updates**: Regularly update and organize this TODO list as tasks are completed or new requirements arise.
+- [x] **Code Quality**: Performed Rust dependency updates and Clippy audit (Clean).
 
 ## Core Functionality (Backend)
 - [x] **AI Inference Engine**: Replace mock implementation in `tagger.rs` with real `ort` (ONNX Runtime) integration.
