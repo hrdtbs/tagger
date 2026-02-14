@@ -68,6 +68,10 @@
 - [x] **CI/CD**:
     - [x] GitHub Actions for building Windows/macOS/Linux binaries.
 
+## Known Issues & Bugs
+- [ ] **Native Host Cleanup**: Implement temporary file cleanup mechanism for processed images (currently files persist in temp directory).
+- [ ] **Windows Browser Support**: Add registry keys for Edge, Brave, and Vivaldi (currently only Chrome is supported via `register_native_host` on Windows).
+
 ## Quality Assurance / Verification (Pending)
 - [ ] **Manual Verification (Windows)**:
     - [ ] Test "Add to Context Menu" adds registry keys correctly.
