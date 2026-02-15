@@ -68,6 +68,9 @@
 - [x] **CI/CD**:
     - [x] GitHub Actions for building Windows/macOS/Linux binaries.
 
+## Technical Debt
+- [ ] **Native Host Cleanup**: Implement cleanup mechanism for temporary files created by `native_host` when processing Data URIs.
+
 ## Quality Assurance / Verification (Pending)
 - [ ] **Manual Verification (Windows)**:
     - [ ] Test "Add to Context Menu" adds registry keys correctly.
@@ -94,3 +97,5 @@
     - [ ] Verify manifest compatibility or create separate manifest for Firefox.
 - [ ] **Offline Installer**:
     - [ ] Create an installer variant that bundles the default models to avoid download requirement.
+- [ ] **Model Flexibility**:
+    - [ ] Implement model-specific preprocessing configuration (e.g. input size, normalization) to support a wider range of ONNX models.
