@@ -111,4 +111,61 @@ mod tests {
         assert_eq!(tensor[[0, 0, 0, 1]], 0.0);
         assert_eq!(tensor[[0, 0, 0, 2]], 255.0);
     }
+
+    #[tokio::test]
+    #[ignore]
+    async fn test_inference_performance() {
+        use std::time::Instant;
+
+        let model_url = "https://huggingface.co/SmilingWolf/wd-v1-4-swinv2-tagger-v2/resolve/main/model.onnx";
+        let tags_url = "https://huggingface.co/SmilingWolf/wd-v1-4-swinv2-tagger-v2/resolve/main/selected_tags.csv";
+
+        let cache_dir = std::env::temp_dir().join("omni-tagger-test-cache");
+        std::fs::create_dir_all(&cache_dir).unwrap();
+
+        let model_path = cache_dir.join("model.onnx");
+        let tags_path = cache_dir.join("selected_tags.csv");
+
+        // Download if missing
+        if !model_path.exists() {
+            println!("Downloading model...");
+            let client = reqwest::Client::new();
+            let resp = client.get(model_url).send().await.expect("Failed to download model");
+            let bytes = resp.bytes().await.expect("Failed to get bytes");
+            std::fs::write(&model_path, bytes).expect("Failed to write model file");
+        }
+
+        if !tags_path.exists() {
+            println!("Downloading tags...");
+            let client = reqwest::Client::new();
+            let resp = client.get(tags_url).send().await.expect("Failed to download tags");
+            let bytes = resp.bytes().await.expect("Failed to get bytes");
+            std::fs::write(&tags_path, bytes).expect("Failed to write tags file");
+        }
+
+        // Load Tagger
+        let start_load = Instant::now();
+        let mut tagger = Tagger::new(model_path.to_str().unwrap(), tags_path.to_str().unwrap())
+            .expect("Failed to load tagger");
+        println!("Model loaded in {:?}", start_load.elapsed());
+
+        // Generate dummy image
+        let mut img = RgbImage::new(512, 512);
+        for x in 0..512 {
+            for y in 0..512 {
+                img.put_pixel(x, y, Rgb([(x % 255) as u8, (y % 255) as u8, 128]));
+            }
+        }
+        let dynamic_img = DynamicImage::ImageRgb8(img);
+
+        // Run inference
+        let start_infer = Instant::now();
+        let results = tagger.infer(&dynamic_img, 0.35).expect("Inference failed");
+        let duration = start_infer.elapsed();
+
+        println!("Inference took {:?}", duration);
+        println!("Top tags: {:?}", results.iter().take(5).collect::<Vec<_>>());
+
+        assert!(duration.as_secs_f32() < 1.0, "Inference took longer than 1 second: {:?}", duration);
+    }
 }
