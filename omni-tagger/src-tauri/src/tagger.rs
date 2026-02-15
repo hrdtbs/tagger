@@ -111,4 +111,37 @@ mod tests {
         assert_eq!(tensor[[0, 0, 0, 1]], 0.0);
         assert_eq!(tensor[[0, 0, 0, 2]], 255.0);
     }
+
+    #[test]
+    #[ignore] // Requires model files and runtime environment
+    fn test_inference_performance() {
+        use std::time::Instant;
+
+        // Paths should be adjusted to where models are expected during test
+        // This is a placeholder as we don't have models in the repo
+        let model_path = "model.onnx";
+        let tags_path = "selected_tags.csv";
+
+        if !std::path::Path::new(model_path).exists() || !std::path::Path::new(tags_path).exists() {
+            println!("Skipping performance test: Model files not found.");
+            return;
+        }
+
+        let mut tagger = Tagger::new(model_path, tags_path).expect("Failed to load tagger");
+
+        // Create a dummy image
+        let img = DynamicImage::ImageRgb8(RgbImage::new(1000, 1000)); // Large image to test resizing too
+
+        // Warmup (optional, but good for accurate inference timing)
+        let _ = tagger.infer(&img, 0.5).unwrap();
+
+        let start = Instant::now();
+        let _ = tagger.infer(&img, 0.5).unwrap();
+        let duration = start.elapsed();
+
+        println!("Inference time: {:?}", duration);
+
+        // Verify performance constraint (e.g. < 1 second)
+        assert!(duration.as_secs_f32() < 1.0, "Inference took too long: {:?}", duration);
+    }
 }

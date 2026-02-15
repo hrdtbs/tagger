@@ -56,7 +56,7 @@ pub async fn register_context_menu(app: AppHandle, enable: bool) -> Result<(), S
     #[cfg(target_os = "linux")]
     {
         // On Linux, we create a .desktop file in ~/.local/share/applications/
-        let data_local_dir = app.path().data_local_dir().map_err(|e| e.to_string())?;
+        let data_local_dir = app.path().data_dir().map_err(|e: tauri::Error| e.to_string())?;
         let applications_dir = data_local_dir.join("applications");
 
         if !applications_dir.exists() {
