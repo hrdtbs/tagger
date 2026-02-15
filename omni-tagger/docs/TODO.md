@@ -4,6 +4,10 @@
 - [x] **Regular Updates**: Regularly update and organize this TODO list as tasks are completed or new requirements arise.
 - [x] **Code Quality**: Performed Rust dependency updates and Clippy audit (Clean).
 
+## Known Issues & Bugs
+- [ ] **Model Download Bug**: `check_and_download_models` in `model_manager.rs` uses a hardcoded URL (SwinV2). If a user configures a different model (e.g. ConvNext) and the file is missing, the application will download the SwinV2 model to the path specified for ConvNext, resulting in a mismatch.
+- [ ] **Native Host Cleanup**: `native_host` does not clean up temporary files created from Data URIs.
+
 ## Core Functionality (Backend)
 - [x] **AI Inference Engine**: Replace mock implementation in `tagger.rs` with real `ort` (ONNX Runtime) integration.
     - [x] Add `ort` dependency to `src-tauri/Cargo.toml`.
