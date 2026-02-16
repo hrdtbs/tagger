@@ -68,10 +68,14 @@
 - [x] **CI/CD**:
     - [x] GitHub Actions for building Windows/macOS/Linux binaries.
 
+## Known Issues & Bugs
+- [ ] **Backend Model Download Logic Flaw**: The `check_and_download_models` function in `src-tauri/src/model_manager.rs` uses a hardcoded URL (WD14 SwinV2). If a user selects a different model (e.g. ConvNext) in settings but the file is missing on startup, the application will incorrectly download the SwinV2 model to the configured path.
+
 ## Technical Debt
 - [ ] **Native Host Cleanup**: Implement cleanup mechanism for temporary files created by `native_host` when processing Data URIs.
 
 ## Quality Assurance / Verification (Pending)
+- [ ] **Frontend E2E Testing**: Implement Playwright tests for frontend verification. Currently missing despite requirements.
 - [ ] **Manual Verification (Windows)**:
     - [ ] Test "Add to Context Menu" adds registry keys correctly.
     - [ ] Test Right-click > "Get Tags" on an image file launches the app and copies tags.
