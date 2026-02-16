@@ -5,7 +5,7 @@
 - [x] **Code Quality**: Performed Rust dependency updates and Clippy audit (Clean).
 
 ## Known Issues & Bugs
-- [ ] **Model Download Bug**: `check_and_download_models` in `model_manager.rs` uses a hardcoded URL (SwinV2). If a user configures a different model (e.g. ConvNext) and the file is missing, the application will download the SwinV2 model to the path specified for ConvNext, resulting in a mismatch.
+- [x] **Model Download Bug**: `check_and_download_models` in `model_manager.rs` uses a hardcoded URL (SwinV2). If a user configures a different model (e.g. ConvNext) and the file is missing, the application will download the SwinV2 model to the path specified for ConvNext, resulting in a mismatch.
 - [ ] **Native Host Cleanup**: `native_host` does not clean up temporary files created from Data URIs.
 
 ## Core Functionality (Backend)
@@ -73,7 +73,7 @@
     - [x] GitHub Actions for building Windows/macOS/Linux binaries.
 
 ## Known Issues & Bugs
-- [ ] **Backend Model Download Logic Flaw**: The `check_and_download_models` function in `src-tauri/src/model_manager.rs` uses a hardcoded URL (WD14 SwinV2). If a user selects a different model (e.g. ConvNext) in settings but the file is missing on startup, the application will incorrectly download the SwinV2 model to the configured path.
+- [x] **Backend Model Download Logic Flaw**: The `check_and_download_models` function in `src-tauri/src/model_manager.rs` uses a hardcoded URL (WD14 SwinV2). If a user selects a different model (e.g. ConvNext) in settings but the file is missing on startup, the application will incorrectly download the SwinV2 model to the configured path.
 
 ## Technical Debt
 - [ ] **Native Host Cleanup**: Implement cleanup mechanism for temporary files created by `native_host` when processing Data URIs.
