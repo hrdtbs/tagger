@@ -93,7 +93,6 @@ pub async fn download_file(app: &AppHandle, url: &str, dest: &Path) -> Result<()
 mod tests {
     use super::*;
     use std::fs;
-    use std::path::PathBuf;
 
     #[test]
     fn test_check_file_exists() {

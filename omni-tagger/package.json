@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "npm run build-native-host && tsc && vite build",
     "build-native-host": "node scripts/build-native-host.mjs",
+    "lint": "eslint .",
     "preview": "vite preview",
     "tauri": "tauri"
   },
@@ -19,14 +20,20 @@
     "react-dom": "^19.1.0"
   },
   "devDependencies": {
+    "@eslint/js": "^9.39.2",
     "@tauri-apps/cli": "^2",
     "@types/react": "^19.1.8",
     "@types/react-dom": "^19.1.6",
     "@vitejs/plugin-react": "^4.6.0",
     "autoprefixer": "^10.4.24",
+    "eslint": "^9.39.2",
+    "eslint-plugin-react-hooks": "^7.0.1",
+    "eslint-plugin-react-refresh": "^0.5.0",
+    "globals": "^17.3.0",
     "postcss": "^8.5.6",
     "tailwindcss": "^4.1.18",
     "typescript": "~5.8.3",
+    "typescript-eslint": "^8.55.0",
     "vite": "^7.0.4"
   }
 }
