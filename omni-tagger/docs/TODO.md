@@ -5,8 +5,8 @@
 - [x] **Code Quality**: Performed Rust dependency updates and Clippy audit (Clean).
 
 ## Known Issues & Bugs
-- [x] **Model Download Bug**: `check_and_download_models` in `model_manager.rs` uses a hardcoded URL (SwinV2). If a user configures a different model (e.g. ConvNext) and the file is missing, the application will download the SwinV2 model to the path specified for ConvNext, resulting in a mismatch.
-- [ ] **Native Host Cleanup**: `native_host` does not clean up temporary files created from Data URIs. (Confirmed: `native_host.rs` writes to temp dir but never deletes).
+- [x] **Model Download Bug**: `check_and_download_models` in `model_manager.rs` used a hardcoded URL. Fixed by implementing dynamic URL resolution based on filename (`model.onnx`, `convnext.onnx`, `convnextv2.onnx`).
+- [ ] **Native Host Cleanup**: `native_host` does not clean up temporary files created from Data URIs. The `native_host` binary writes decoded images to the system temp directory but currently lacks logic to delete them after processing.
 
 ## Core Functionality (Backend)
 - [x] **AI Inference Engine**: Replace mock implementation in `tagger.rs` with real `ort` (ONNX Runtime) integration.
@@ -71,12 +71,6 @@
     - [x] Verify the path resolution logic in `register_native_host` works with the installed path.
 - [x] **CI/CD**:
     - [x] GitHub Actions for building Windows/macOS/Linux binaries.
-
-## Known Issues & Bugs
-- [x] **Backend Model Download Logic Flaw**: The `check_and_download_models` function in `src-tauri/src/model_manager.rs` uses a hardcoded URL (WD14 SwinV2). If a user selects a different model (e.g. ConvNext) in settings but the file is missing on startup, the application will incorrectly download the SwinV2 model to the configured path.
-
-## Technical Debt
-- [ ] **Native Host Cleanup**: Implement cleanup mechanism for temporary files created by `native_host` when processing Data URIs.
 
 ## Quality Assurance / Verification (Pending)
 - [ ] **Frontend E2E Testing**: Implement Playwright tests for frontend verification. Currently missing despite requirements.
