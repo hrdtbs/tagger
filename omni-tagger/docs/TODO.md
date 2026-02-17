@@ -6,7 +6,7 @@
 
 ## Known Issues & Bugs
 - [x] **Model Download Bug**: `check_and_download_models` in `model_manager.rs` uses a hardcoded URL (SwinV2). If a user configures a different model (e.g. ConvNext) and the file is missing, the application will download the SwinV2 model to the path specified for ConvNext, resulting in a mismatch.
-- [ ] **Native Host Cleanup**: `native_host` does not clean up temporary files created from Data URIs.
+- [ ] **Native Host Cleanup**: `native_host` does not clean up temporary files created from Data URIs. (Confirmed: `native_host.rs` writes to temp dir but never deletes).
 
 ## Core Functionality (Backend)
 - [x] **AI Inference Engine**: Replace mock implementation in `tagger.rs` with real `ort` (ONNX Runtime) integration.

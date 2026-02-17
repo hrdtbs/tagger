@@ -4,8 +4,6 @@ use tauri::{path::BaseDirectory, Manager};
 use std::process::Command;
 #[cfg(target_os = "linux")]
 use std::fs;
-#[cfg(target_os = "linux")]
-use std::path::PathBuf;
 
 #[tauri::command]
 pub async fn register_context_menu(app: AppHandle, enable: bool) -> Result<(), String> {
@@ -72,10 +70,8 @@ pub async fn register_context_menu(app: AppHandle, enable: bool) -> Result<(), S
             // Generate content
             let content = generate_desktop_file_content(exe_str);
             fs::write(&desktop_file_path, content).map_err(|e| format!("Failed to write desktop file: {}", e))?;
-        } else {
-            if desktop_file_path.exists() {
-                fs::remove_file(&desktop_file_path).map_err(|e| format!("Failed to remove desktop file: {}", e))?;
-            }
+        } else if desktop_file_path.exists() {
+            fs::remove_file(&desktop_file_path).map_err(|e| format!("Failed to remove desktop file: {}", e))?;
         }
         Ok(())
     }
