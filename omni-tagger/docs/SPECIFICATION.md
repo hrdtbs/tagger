@@ -10,7 +10,9 @@
    * **Windows**: エクスプローラーで画像ファイル（.png, .jpg, .webp等）を右クリックし、「Get Tags」を選択することで発火。
    * **Linux**: デスクトップ環境（Nautilus, Dolphin等）で「Get Tags」アクションを選択。
  * **バックグラウンド処理**: アプリが起動していない場合でも自動的に起動し、タグ生成後にクリップボードへコピーして終了（または常駐）。
-   * **Headless (CLI)**: コマンドライン引数（ファイルパス等）付きで起動した場合は、処理完了後に自動終了。
+   * **Headless (CLI)**: コマンドライン引数付きで起動した場合は、処理完了後に自動終了。
+     * `omni-tagger <file_path>`: 指定された画像ファイルを処理。
+     * `omni-tagger --process-url <url>`: 指定されたURLの画像をダウンロードして処理（Native Messaging等で使用）。
    * **GUI**: 通常起動（引数なし）の場合は常駐し、後続のリクエストを処理。
 
 ### 2.2 ブラウザ連携 (Chrome/Edge/Firefox予定)
@@ -40,7 +42,7 @@
 
 ## 4. システムアーキテクチャ・データフロー
 1. **Trigger**:
-    *   **Local**: Context Menu (Registry/.desktop) -> 実行引数としてファイルパスを受け取る。
+    *   **Local**: Context Menu (Registry/.desktop) -> 実行引数としてファイルパスを受け取る。CLI経由でのURL処理もサポート。
     *   **Browser**: Chrome Extension Context Menu -> Native Messaging経由でJSONメッセージを受信。
 2. **Image Loading**: ファイルパスまたはURL/Base64から画像データをメモリに展開。
 3. **Preprocessing**: 画像を 448 x 448 ピクセルにリサイズし、BGR正規化を実行 (WD14 SwinV2 標準)。
