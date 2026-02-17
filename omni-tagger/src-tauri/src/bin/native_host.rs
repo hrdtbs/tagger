@@ -82,6 +82,7 @@ fn handle_request(req: Request) -> Response {
 
                         match fs::write(&file_path, decoded) {
                             Ok(_) => {
+                                command_args.push("--delete-after".to_string());
                                 command_args.push(file_path.to_string_lossy().into_owned());
                             }
                             Err(e) => {
