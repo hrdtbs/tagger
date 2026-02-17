@@ -4,8 +4,13 @@ use std::io::Write;
 use std::path::Path;
 use tauri::{AppHandle, Emitter};
 
-const MODEL_URL: &str =
+const SWINV2_MODEL_URL: &str =
     "https://huggingface.co/SmilingWolf/wd-v1-4-swinv2-tagger-v2/resolve/main/model.onnx";
+const CONVNEXT_MODEL_URL: &str =
+    "https://huggingface.co/SmilingWolf/wd-v1-4-convnext-tagger-v2/resolve/main/model.onnx";
+const CONVNEXTV2_MODEL_URL: &str =
+    "https://huggingface.co/SmilingWolf/wd-v1-4-convnextv2-tagger-v2/resolve/main/model.onnx";
+
 const TAGS_URL: &str =
     "https://huggingface.co/SmilingWolf/wd-v1-4-swinv2-tagger-v2/resolve/main/selected_tags.csv";
 
@@ -17,13 +22,27 @@ struct DownloadProgress {
     percent: f64,
 }
 
+fn get_model_url(path: &Path) -> Option<&'static str> {
+    let file_name = path.file_name()?.to_str()?;
+    match file_name {
+        "model.onnx" => Some(SWINV2_MODEL_URL),
+        "convnext.onnx" => Some(CONVNEXT_MODEL_URL),
+        "convnextv2.onnx" => Some(CONVNEXTV2_MODEL_URL),
+        _ => None,
+    }
+}
+
 pub async fn check_and_download_models(
     app: &AppHandle,
     model_path: &Path,
     tags_path: &Path,
 ) -> Result<(), String> {
     if !model_path.exists() {
-        download_file(app, MODEL_URL, model_path).await?;
+        if let Some(url) = get_model_url(model_path) {
+            download_file(app, url, model_path).await?;
+        } else {
+            return Err(format!("Model file not found at {:?} and cannot be automatically downloaded. Please ensure the path is correct or download the model manually.", model_path));
+        }
     }
 
     if !tags_path.exists() {
@@ -113,5 +132,23 @@ mod tests {
 
         // Clean up
         fs::remove_file(file_path).unwrap();
+    }
+
+    #[test]
+    fn test_get_model_url() {
+        assert_eq!(
+            get_model_url(Path::new("models/model.onnx")),
+            Some(SWINV2_MODEL_URL)
+        );
+        assert_eq!(
+            get_model_url(Path::new("/abs/path/to/convnext.onnx")),
+            Some(CONVNEXT_MODEL_URL)
+        );
+        assert_eq!(
+            get_model_url(Path::new("convnextv2.onnx")),
+            Some(CONVNEXTV2_MODEL_URL)
+        );
+        assert_eq!(get_model_url(Path::new("custom_model.onnx")), None);
+        assert_eq!(get_model_url(Path::new("some/other/file.txt")), None);
     }
 }
