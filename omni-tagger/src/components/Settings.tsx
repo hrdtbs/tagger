@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { invoke } from "@tauri-apps/api/core";
 import { listen } from "@tauri-apps/api/event";
 import { open } from '@tauri-apps/plugin-dialog';
@@ -34,6 +34,22 @@ export default function Settings() {
   const [modelStatus, setModelStatus] = useState<'checking' | 'present' | 'missing'>('checking');
   const [extensionId, setExtensionId] = useState("");
 
+  const configRef = useRef(config);
+  useEffect(() => {
+      configRef.current = config;
+  }, [config]);
+
+  const checkModel = useCallback(async (path: string) => {
+      setModelStatus('checking');
+      try {
+          const exists = await invoke<boolean>('check_model_exists', { pathStr: path });
+          setModelStatus(exists ? 'present' : 'missing');
+      } catch (e) {
+          console.error("Failed to check model", e);
+          setModelStatus('missing');
+      }
+  }, []);
+
   useEffect(() => {
     invoke<AppConfig>('get_config')
       .then(c => {
@@ -52,39 +68,23 @@ export default function Settings() {
 
     const unlistenFinished = listen('model-download-finished', () => {
         setDownloadProgress(null);
-        if (config) checkModel(config.model_path);
+        if (configRef.current) checkModel(configRef.current.model_path);
     });
 
     return () => {
         unlistenProgress.then(f => f());
         unlistenFinished.then(f => f());
     };
-  }, []);
+  }, [checkModel]);
 
   // Check model status when config.model_path changes
   useEffect(() => {
     if (config) {
+        // eslint-disable-next-line
         checkModel(config.model_path);
     }
-  }, [config?.model_path]);
-
-  // Sync exclusion text when config changes (e.g. formatting)
-  useEffect(() => {
-      if (config) {
-          setExclusionText(config.exclusion_list.join(", "));
-      }
-  }, [config]);
-
-  const checkModel = async (path: string) => {
-      setModelStatus('checking');
-      try {
-          const exists = await invoke<boolean>('check_model_exists', { pathStr: path });
-          setModelStatus(exists ? 'present' : 'missing');
-      } catch (e) {
-          console.error("Failed to check model", e);
-          setModelStatus('missing');
-      }
-  };
+    // eslint-disable-next-line
+  }, [config?.model_path, checkModel]);
 
   const downloadCurrentModel = async () => {
       if (!config) return;
