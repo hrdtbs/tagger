@@ -1,3 +1,4 @@
+use anyhow::{Context, Result};
 use crate::config::{get_config, resolve_model_path};
 use crate::state::AppState;
 use crate::tagger::Tagger;
@@ -5,7 +6,7 @@ use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
 use tauri_plugin_notification::NotificationExt;
 
-pub async fn process_inputs(app: &AppHandle, args: Vec<String>) -> Result<(), String> {
+pub async fn process_inputs(app: &AppHandle, args: Vec<String>) -> Result<()> {
     if args.len() <= 1 {
         return Ok(());
     }
@@ -26,45 +27,39 @@ pub async fn process_inputs(app: &AppHandle, args: Vec<String>) -> Result<(), St
     Ok(())
 }
 
-async fn process_image_url(app: &AppHandle, url: String) -> Result<(), String> {
+async fn process_image_url(app: &AppHandle, url: String) -> Result<()> {
     // Download image
     // Using reqwest
     let client = reqwest::Client::new();
-    let resp = client.get(&url).send().await.map_err(|e| e.to_string())?;
-    let bytes = resp.bytes().await.map_err(|e| e.to_string())?;
-    let img = image::load_from_memory(&bytes)
-        .map_err(|e| format!("Failed to load image from URL: {}", e))?;
+    let resp = client
+        .get(&url)
+        .send()
+        .await
+        .context("Failed to send request")?;
+    let bytes = resp.bytes().await.context("Failed to read response body")?;
+    let img = image::load_from_memory(&bytes).context("Failed to load image from URL")?;
 
     run_inference_and_notify(app, img).await
 }
 
-async fn process_image_file(app: &AppHandle, path: PathBuf) -> Result<(), String> {
-    let img = image::open(&path).map_err(|e| format!("Failed to open image: {}", e))?;
+async fn process_image_file(app: &AppHandle, path: PathBuf) -> Result<()> {
+    let img = image::open(&path).context("Failed to open image file")?;
     run_inference_and_notify(app, img).await
 }
 
-async fn run_inference_and_notify(app: &AppHandle, img: image::DynamicImage) -> Result<(), String> {
+async fn run_inference_and_notify(app: &AppHandle, img: image::DynamicImage) -> Result<()> {
     let state = app.state::<AppState>();
 
-    // We can't use get_config command directly as it expects State<_>.
-    // But we have AppState.
-    // Actually get_config in config.rs takes State<'_, AppState>.
-    // But here we are in async function, we can just access the state directly.
-    // Or we can call get_config(state).
-    // Let's reuse logic from config.rs, but get_config takes State, which we have.
-
-    // However, get_config is a command, it returns Result<AppConfig, String>.
-    // And it takes State<'_, AppState>.
-    // app.state::<AppState>() returns State<AppState>.
-    // So get_config(state) works.
-
-    let config = get_config(state.clone())?;
+    let config = get_config(state.clone()).map_err(anyhow::Error::msg)?;
 
     // Quick check if loaded
-    let is_loaded = state.tagger.lock().map_err(|e| e.to_string())?.is_some();
+    let is_loaded = state
+        .tagger
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Mutex poisoned"))?
+        .is_some();
 
     if !is_loaded {
-        // Load it now (blocking/async mixed?)
         let model_path = resolve_model_path(app, &config.model_path);
         let tags_path = resolve_model_path(app, &config.tags_path);
 
@@ -72,17 +67,23 @@ async fn run_inference_and_notify(app: &AppHandle, img: image::DynamicImage) -> 
             model_path.to_str().unwrap_or(&config.model_path),
             tags_path.to_str().unwrap_or(&config.tags_path),
         )
-        .map_err(|e| e.to_string())?;
+        .context("Failed to initialize tagger")?;
 
-        *state.tagger.lock().map_err(|e| e.to_string())? = Some(tagger);
+        *state
+            .tagger
+            .lock()
+            .map_err(|_| anyhow::anyhow!("Mutex poisoned"))? = Some(tagger);
     }
 
-    let mut tagger_guard = state.tagger.lock().map_err(|e| e.to_string())?;
-    let tagger = tagger_guard.as_mut().ok_or("Tagger not available")?;
+    let mut tagger_guard = state
+        .tagger
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Mutex poisoned"))?;
+    let tagger = tagger_guard
+        .as_mut()
+        .ok_or_else(|| anyhow::anyhow!("Tagger not available"))?;
 
-    let results = tagger
-        .infer(&img, config.threshold)
-        .map_err(|e| e.to_string())?;
+    let results = tagger.infer(&img, config.threshold).context("Inference failed")?;
 
     let mut filtered: Vec<String> = results
         .into_iter()
@@ -97,10 +98,10 @@ async fn run_inference_and_notify(app: &AppHandle, img: image::DynamicImage) -> 
     }
     let tags_str = filtered.join(", ");
 
-    let mut clipboard = arboard::Clipboard::new().map_err(|e| e.to_string())?;
+    let mut clipboard = arboard::Clipboard::new().context("Failed to initialize clipboard")?;
     clipboard
         .set_text(tags_str.clone())
-        .map_err(|e| e.to_string())?;
+        .context("Failed to set clipboard text")?;
 
     let _ = app
         .notification()
