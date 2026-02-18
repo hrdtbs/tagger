@@ -2,11 +2,12 @@ import { test, expect } from '@playwright/test';
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const mockInvoke = async (cmd: string, args: any) => {
       console.log(`[Mock Invoke] ${cmd}`, args);
 
       if (cmd.startsWith('plugin:event|')) {
-          return 123; // Event ID or similar
+        return 123; // Event ID or similar
       }
 
       if (cmd === 'get_config') {
@@ -15,7 +16,7 @@ test.beforeEach(async ({ page }) => {
           tags_path: 'models/tags.csv',
           threshold: 0.5,
           use_underscore: true,
-          exclusion_list: ['nsfw', 'monochrome']
+          exclusion_list: ['nsfw', 'monochrome'],
         };
       }
       if (cmd === 'check_model_exists') {
@@ -29,18 +30,22 @@ test.beforeEach(async ({ page }) => {
       return null;
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).__TAURI_INTERNALS__ = {
       invoke: mockInvoke,
       plugins: {
-          invoke: mockInvoke
-      }
+        invoke: mockInvoke,
+      },
     };
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     (window as any).__TAURI__ = {
-        invoke: mockInvoke,
-        event: {
-            listen: async () => { return () => {}; }
-        }
+      invoke: mockInvoke,
+      event: {
+        listen: async () => {
+          return () => {};
+        },
+      },
     };
   });
 });
@@ -48,7 +53,9 @@ test.beforeEach(async ({ page }) => {
 test('has settings header', async ({ page }) => {
   await page.goto('/');
 
-  await expect(page.getByRole('heading', { name: 'OmniTagger Settings' })).toBeVisible();
+  await expect(
+    page.getByRole('heading', { name: 'OmniTagger Settings' })
+  ).toBeVisible();
 });
 
 test('loads configuration correctly', async ({ page }) => {
