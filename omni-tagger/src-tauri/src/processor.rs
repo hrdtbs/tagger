@@ -6,21 +6,60 @@ use tauri::{AppHandle, Manager};
 use tauri_plugin_notification::NotificationExt;
 
 pub async fn process_inputs(app: &AppHandle, args: Vec<String>) -> Result<(), String> {
+    process_inputs_with_actions(
+        args,
+        |url| process_image_url(app, url),
+        |path| process_image_file(app, path),
+    )
+    .await
+}
+
+pub async fn process_inputs_with_actions<FUrl, FutUrl, FFile, FutFile>(
+    args: Vec<String>,
+    url_processor: FUrl,
+    file_processor: FFile,
+) -> Result<(), String>
+where
+    FUrl: FnOnce(String) -> FutUrl,
+    FutUrl: std::future::Future<Output = Result<(), String>>,
+    FFile: FnOnce(PathBuf) -> FutFile,
+    FutFile: std::future::Future<Output = Result<(), String>>,
+{
     if args.len() <= 1 {
         return Ok(());
     }
 
-    // args[1] could be file path or flag
-    let arg1 = args[1].clone();
+    let mut idx = 1;
+    let mut delete_after = false;
 
-    if arg1 == "--process-url" {
-        if args.len() > 2 {
-            let url = args[2].clone();
-            process_image_url(app, url).await?;
+    if args.len() > idx && args[idx] == "--delete-after" {
+        delete_after = true;
+        idx += 1;
+    }
+
+    if args.len() <= idx {
+        return Ok(());
+    }
+
+    let arg = args[idx].clone();
+
+    if arg == "--process-url" {
+        if args.len() > idx + 1 {
+            let url = args[idx + 1].clone();
+            url_processor(url).await?;
         }
-    } else if !arg1.starts_with("--") {
-        let path = PathBuf::from(arg1);
-        process_image_file(app, path).await?;
+    } else if !arg.starts_with("--") {
+        let path = PathBuf::from(arg);
+        let result = file_processor(path.clone()).await;
+
+        if delete_after {
+            if let Err(e) = std::fs::remove_file(&path) {
+                eprintln!("Failed to delete temp file {:?}: {}", path, e);
+            } else {
+                println!("Deleted temp file {:?}", path);
+            }
+        }
+        result?;
     }
 
     Ok(())
@@ -110,4 +149,73 @@ async fn run_inference_and_notify(app: &AppHandle, img: image::DynamicImage) -> 
         .show();
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::fs;
+    use std::io::Write;
+
+    #[tokio::test]
+    async fn test_process_inputs_with_actions_delete_after() {
+        let temp_dir = std::env::temp_dir();
+        let file_path = temp_dir.join("omni_tagger_test_delete.tmp");
+
+        // Create a dummy file
+        {
+            let mut file = fs::File::create(&file_path).unwrap();
+            writeln!(file, "dummy content").unwrap();
+        }
+
+        assert!(file_path.exists());
+
+        let args = vec![
+            "app_name".to_string(),
+            "--delete-after".to_string(),
+            file_path.to_string_lossy().to_string(),
+        ];
+
+        let result = process_inputs_with_actions(
+            args,
+            |_| async { Ok(()) },
+            |_| async { Ok(()) },
+        )
+        .await;
+
+        assert!(result.is_ok());
+        assert!(!file_path.exists(), "File should be deleted after processing");
+    }
+
+    #[tokio::test]
+    async fn test_process_inputs_with_actions_no_delete() {
+        let temp_dir = std::env::temp_dir();
+        let file_path = temp_dir.join("omni_tagger_test_keep.tmp");
+
+        // Create a dummy file
+        {
+            let mut file = fs::File::create(&file_path).unwrap();
+            writeln!(file, "dummy content").unwrap();
+        }
+
+        assert!(file_path.exists());
+
+        let args = vec![
+            "app_name".to_string(),
+            file_path.to_string_lossy().to_string(),
+        ];
+
+        let result = process_inputs_with_actions(
+            args,
+            |_| async { Ok(()) },
+            |_| async { Ok(()) },
+        )
+        .await;
+
+        assert!(result.is_ok());
+        assert!(file_path.exists(), "File should NOT be deleted");
+
+        // Cleanup
+        fs::remove_file(file_path).unwrap();
+    }
 }
