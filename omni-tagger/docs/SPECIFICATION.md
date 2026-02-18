@@ -13,6 +13,7 @@
    * **Headless (CLI)**: コマンドライン引数付きで起動した場合は、処理完了後に自動終了。
      * `omni-tagger <file_path>`: 指定された画像ファイルを処理。
      * `omni-tagger --process-url <url>`: 指定されたURLの画像をダウンロードして処理（Native Messaging等で使用）。
+     * `omni-tagger --delete-after <file_path>`: 指定された画像ファイルを処理後に削除（一時ファイル処理用）。
    * **GUI**: 通常起動（引数なし）の場合は常駐し、後続のリクエストを処理。
 
 ### 2.2 ブラウザ連携 (Chrome/Edge/Firefox予定)
@@ -70,6 +71,8 @@
 
 ### 7.1 Native Messaging Protocol
 ブラウザ拡張機能 (`browser-extension`) とネイティブホスト (`native_host.exe` / `native_host`) 間の通信プロトコル（JSON over Stdin/Stdout）。
+
+**注意**: `url` フィールドで画像URLを送信する場合、バックエンド側で再ダウンロードを行うため、Cookie認証が必要な画像や `blob:` URL は処理できません。その場合は `data` フィールド（Base64）を使用してください。
 
 **Request (Extension -> Host):**
 ```json
