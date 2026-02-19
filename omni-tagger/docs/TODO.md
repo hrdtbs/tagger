@@ -28,11 +28,12 @@
     - [x] Forward requests from `native_host` to main app (via process spawning).
     - [x] Add `register_native_host` command.
     - [x] **Data URI Support**: Implement handling of base64/data URIs from the browser extension.
+    - [x] **Native Host Cleanup**: Implement cleanup mechanism for temporary files created by `native_host` when processing Data URIs.
 
 ## Linux Support
 - [x] **Native Host Support**:
     - [x] Implement `native_host` build and bundling for Linux.
-    - [x] Implement `register_native_host` logic for Linux (Manifest in `~/.config/...`).
+    - [x] Implement `register_native_host` logic for Linux (Manifest in `~/.config/...`). Support for Chrome, Chromium, Edge, Brave.
 - [x] **Context Menu Support**:
     - [x] Implement context menu registration for Linux (.desktop actions in `~/.local/share/applications`).
 
@@ -69,34 +70,34 @@
     - [x] GitHub Actions for building Windows/macOS/Linux binaries.
 
 ## Known Issues & Bugs
-- [x] **Backend Model Download Logic Flaw**: The `check_and_download_models` function in `src-tauri/src/model_manager.rs` uses a hardcoded URL (WD14 SwinV2). If a user selects a different model (e.g. ConvNext) in settings but the file is missing on startup, the application will incorrectly download the SwinV2 model to the configured path.
-- [ ] **Private/Blob URL Handling**: The current Native Messaging implementation sends public URLs to the backend. Images on private pages (requiring cookies) or Blob URLs fail to download. Workaround: Extension should send Data URI.
-
-## Technical Debt
-- [x] **Native Host Cleanup**: Implement cleanup mechanism for temporary files created by `native_host` when processing Data URIs.
+- [x] **Backend Model Download Logic Flaw**: The `check_and_download_models` function in `src-tauri/src/model_manager.rs` uses a hardcoded URL. **Fixed**: `get_model_url` now dynamically resolves the correct URL based on the filename.
+- [ ] **Private/Blob URL Handling**: The Backend supports Data URIs, but the current Browser Extension only sends URLs directly (which fails for private/blob content) or pre-existing Data URIs.
+    - **Workaround**: Extension needs logic to fetch image data for Blob/Private URLs and convert to Data URI before sending to Native Host.
 
 ## Quality Assurance / Verification (Pending)
 - [x] **Frontend E2E Testing**: Implemented Playwright tests for frontend verification. Added `e2e` directory and `test:e2e` script.
 - [ ] **Manual Verification (Windows)**:
     - [ ] Test "Add to Context Menu" adds registry keys correctly.
     - [ ] Test Right-click > "Get Tags" on an image file launches the app and copies tags.
-    - [x] Test "Register Host" adds the manifest file and registry key. (Added unit test for manifest generation in `registry.rs`)
+    - [x] Test "Register Host" adds the manifest file and registry key. (Unit tested: `test_generate_manifest_content`. Registry logic requires manual check).
     - [ ] Test Browser Extension communication (URL handling).
     - [ ] Test Browser Extension communication (Data URI handling).
 - [ ] **Manual Verification (Linux)**:
     - [ ] Test "Add to Context Menu" creates `~/.local/share/applications/omni-tagger-context.desktop`.
     - [ ] Test Right-click > "Get Tags" (via File Manager supporting Desktop Actions) launches app.
-    - [ ] Test "Register Host" creates manifest in `~/.config/google-chrome/NativeMessagingHosts/`.
+    - [x] Test "Register Host" creates manifest in `~/.config/google-chrome/NativeMessagingHosts/`. (Unit tested: `test_generate_manifest_content`).
     - [ ] Test Browser Extension communication.
 
 ## Non-Functional Requirements (Pending Validation)
-- [x] **Performance**: Verify tag generation completes within 1 second. (Added `test_inference_performance` benchmark)
+- [x] **Performance**: Verify tag generation completes within 1 second. (Verified by `test_inference_performance` benchmark test).
 - [ ] **Size**: Verify application size is under 100MB (excluding models). (Pending: Build environment limitations prevent local verification)
-- [x] **Offline Operation**: Verify core features work without internet (after initial model download). (Added `test_check_file_exists` unit test)
+- [x] **Offline Operation**: Verify core features work without internet (after initial model download). (Verified by `test_check_file_exists` unit test).
 
 ## Future Improvements / Cross-Platform
 - [ ] **Improved Browser Integration**:
     - [ ] Implement logic in extension to fetch image data for Blob/Private URLs and send as Data URI automatically.
+- [ ] **Windows Native Host Support (Edge/Brave)**:
+    - [ ] Currently, `register_native_host` on Windows only writes to the Google Chrome registry key. Add support for Edge and Brave registry keys.
 - [ ] **macOS Integration**:
     - [ ] Implement Context Menu registration for macOS (Finder extensions or Automator services).
     - [ ] Implement Native Messaging Host registration for macOS.
