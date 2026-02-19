@@ -133,15 +133,10 @@ pub async fn register_native_host(app: AppHandle, extension_id: String) -> Resul
         let exe_dir = native_host_path.parent().ok_or("Invalid path")?;
 
         // 2. Create JSON Manifest
-        let manifest_content = serde_json::json!({
-            "name": "com.omnitagger.host",
-            "description": "OmniTagger Native Messaging Host",
-            "path": native_host_path.to_str().unwrap_or("native_host.exe"),
-            "type": "stdio",
-            "allowed_origins": [
-                format!("chrome-extension://{}/", extension_id)
-            ]
-        });
+        let manifest_content = generate_manifest_content(
+            native_host_path.to_str().unwrap_or("native_host.exe"),
+            &extension_id,
+        );
 
         let manifest_path = exe_dir.join("com.omnitagger.host.json");
         let file = std::fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
@@ -188,7 +183,10 @@ pub async fn register_native_host(app: AppHandle, extension_id: String) -> Resul
         }
 
         // 2. Generate Manifest Content
-        let manifest_content = generate_linux_manifest(&native_host_path, &extension_id)?;
+        let manifest_content = generate_manifest_content(
+            native_host_path.to_str().ok_or("Invalid path")?,
+            &extension_id,
+        );
 
         // 3. Write to browser config directories
         let config_dir = app.path().config_dir().map_err(|e| e.to_string())?;
@@ -245,20 +243,17 @@ pub async fn register_native_host(app: AppHandle, extension_id: String) -> Resul
     }
 }
 
-#[cfg(target_os = "linux")]
-fn generate_linux_manifest(native_host_path: &std::path::Path, extension_id: &str) -> Result<serde_json::Value, String> {
-    let path_str = native_host_path.to_str().ok_or("Invalid native host path")?;
-    Ok(serde_json::json!({
+fn generate_manifest_content(native_host_path: &str, extension_id: &str) -> serde_json::Value {
+    serde_json::json!({
         "name": "com.omnitagger.host",
         "description": "OmniTagger Native Messaging Host",
-        "path": path_str,
+        "path": native_host_path,
         "type": "stdio",
         "allowed_origins": [
             format!("chrome-extension://{}/", extension_id)
         ]
-    }))
+    })
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -274,10 +269,8 @@ mod tests {
     }
 
     #[test]
-    #[cfg(target_os = "linux")]
-    fn test_generate_linux_manifest() {
-        let path = std::path::Path::new("/usr/bin/native_host");
-        let json = generate_linux_manifest(path, "abcdefg").unwrap();
+    fn test_generate_manifest_content() {
+        let json = generate_manifest_content("/usr/bin/native_host", "abcdefg");
 
         assert_eq!(json["name"], "com.omnitagger.host");
         assert_eq!(json["path"], "/usr/bin/native_host");

@@ -79,7 +79,7 @@
 - [ ] **Manual Verification (Windows)**:
     - [ ] Test "Add to Context Menu" adds registry keys correctly.
     - [ ] Test Right-click > "Get Tags" on an image file launches the app and copies tags.
-    - [ ] Test "Register Host" adds the manifest file and registry key.
+    - [x] Test "Register Host" adds the manifest file and registry key. (Added unit test for manifest generation in `registry.rs`)
     - [ ] Test Browser Extension communication (URL handling).
     - [ ] Test Browser Extension communication (Data URI handling).
 - [ ] **Manual Verification (Linux)**:
@@ -90,7 +90,7 @@
 
 ## Non-Functional Requirements (Pending Validation)
 - [x] **Performance**: Verify tag generation completes within 1 second. (Added `test_inference_performance` benchmark)
-- [ ] **Size**: Verify application size is under 100MB (excluding models).
+- [ ] **Size**: Verify application size is under 100MB (excluding models). (Pending: Build environment limitations prevent local verification)
 - [x] **Offline Operation**: Verify core features work without internet (after initial model download). (Added `test_check_file_exists` unit test)
 
 ## Future Improvements / Cross-Platform
