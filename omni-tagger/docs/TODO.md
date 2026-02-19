@@ -70,6 +70,7 @@
 
 ## Known Issues & Bugs
 - [x] **Backend Model Download Logic Flaw**: The `check_and_download_models` function in `src-tauri/src/model_manager.rs` uses a hardcoded URL (WD14 SwinV2). If a user selects a different model (e.g. ConvNext) in settings but the file is missing on startup, the application will incorrectly download the SwinV2 model to the configured path.
+- [ ] **Private/Blob URL Handling**: The current Native Messaging implementation sends public URLs to the backend. Images on private pages (requiring cookies) or Blob URLs fail to download. Workaround: Extension should send Data URI.
 
 ## Technical Debt
 - [x] **Native Host Cleanup**: Implement cleanup mechanism for temporary files created by `native_host` when processing Data URIs.
@@ -94,6 +95,8 @@
 - [x] **Offline Operation**: Verify core features work without internet (after initial model download). (Added `test_check_file_exists` unit test)
 
 ## Future Improvements / Cross-Platform
+- [ ] **Improved Browser Integration**:
+    - [ ] Implement logic in extension to fetch image data for Blob/Private URLs and send as Data URI automatically.
 - [ ] **macOS Integration**:
     - [ ] Implement Context Menu registration for macOS (Finder extensions or Automator services).
     - [ ] Implement Native Messaging Host registration for macOS.
