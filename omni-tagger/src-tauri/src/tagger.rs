@@ -1,7 +1,7 @@
+use anyhow::{Context, Result};
 use image::{DynamicImage, GenericImageView};
 use ndarray::Array4;
 use ort::session::{builder::GraphOptimizationLevel, Session};
-use std::error::Error;
 use std::fs::File;
 
 pub struct Tagger {
@@ -10,16 +10,16 @@ pub struct Tagger {
 }
 
 impl Tagger {
-    pub fn new(model_path: &str, tags_csv_path: &str) -> Result<Self, Box<dyn Error>> {
+    pub fn new(model_path: &str, tags_csv_path: &str) -> Result<Self> {
         // Load tags
-        let file = File::open(tags_csv_path)?;
+        let file = File::open(tags_csv_path).context("Failed to open tags file")?;
         let mut rdr = csv::ReaderBuilder::new()
             .has_headers(false)
             .from_reader(file);
 
         let mut tags = Vec::new();
         for result in rdr.records() {
-            let record = result?;
+            let record = result.context("Failed to read CSV record")?;
             if let Some(tag) = record.get(1) {
                 tags.push(tag.to_string());
             }
@@ -29,7 +29,8 @@ impl Tagger {
         let session = Session::builder()?
             .with_optimization_level(GraphOptimizationLevel::Level3)?
             .with_intra_threads(4)?
-            .commit_from_file(model_path)?;
+            .commit_from_file(model_path)
+            .context("Failed to load model")?;
 
         Ok(Self { session, tags })
     }
@@ -38,7 +39,7 @@ impl Tagger {
         &mut self,
         image: &DynamicImage,
         threshold: f32,
-    ) -> Result<Vec<(String, f32)>, Box<dyn Error>> {
+    ) -> Result<Vec<(String, f32)>> {
         let input_tensor = preprocess(image);
 
         // Run inference
@@ -112,9 +113,9 @@ mod tests {
         assert_eq!(tensor[[0, 0, 0, 2]], 255.0);
     }
 
-    #[test]
+    #[tokio::test]
     #[ignore] // Requires model files and runtime environment
-    fn test_inference_performance() {
+    async fn test_inference_performance() {
         use std::time::Instant;
 
         // Paths should be adjusted to where models are expected during test

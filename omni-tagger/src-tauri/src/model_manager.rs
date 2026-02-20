@@ -1,3 +1,4 @@
+use anyhow::{anyhow, Context, Result};
 use futures_util::StreamExt;
 use std::fs::{self, File};
 use std::io::Write;
@@ -36,12 +37,12 @@ pub async fn check_and_download_models(
     app: &AppHandle,
     model_path: &Path,
     tags_path: &Path,
-) -> Result<(), String> {
+) -> Result<()> {
     if !model_path.exists() {
         if let Some(url) = get_model_url(model_path) {
             download_file(app, url, model_path).await?;
         } else {
-            return Err(format!("Model file not found at {:?} and cannot be automatically downloaded. Please ensure the path is correct or download the model manually.", model_path));
+            return Err(anyhow!("Model file not found at {:?} and cannot be automatically downloaded. Please ensure the path is correct or download the model manually.", model_path));
         }
     }
 
@@ -59,22 +60,22 @@ pub fn check_file_exists(path: &Path) -> bool {
     path.exists()
 }
 
-pub async fn download_file(app: &AppHandle, url: &str, dest: &Path) -> Result<(), String> {
+pub async fn download_file(app: &AppHandle, url: &str, dest: &Path) -> Result<()> {
     let client = reqwest::Client::new();
     let res = client
         .get(url)
         .send()
         .await
-        .map_err(|e| format!("Failed to connect: {}", e))?;
+        .context("Failed to connect")?;
 
     let total_size = res.content_length().unwrap_or(0);
 
     // Create parent directory if it doesn't exist
     if let Some(parent) = dest.parent() {
-        fs::create_dir_all(parent).map_err(|e| format!("Failed to create directory: {}", e))?;
+        fs::create_dir_all(parent).context("Failed to create directory")?;
     }
 
-    let mut file = File::create(dest).map_err(|e| format!("Failed to create file: {}", e))?;
+    let mut file = File::create(dest).context("Failed to create file")?;
     let mut stream = res.bytes_stream();
     let mut downloaded: u64 = 0;
 
@@ -85,9 +86,9 @@ pub async fn download_file(app: &AppHandle, url: &str, dest: &Path) -> Result<()
         .to_string();
 
     while let Some(item) = stream.next().await {
-        let chunk = item.map_err(|e| format!("Error while downloading: {}", e))?;
+        let chunk = item.context("Error while downloading")?;
         file.write_all(&chunk)
-            .map_err(|e| format!("Error while writing to file: {}", e))?;
+            .context("Error while writing to file")?;
 
         downloaded += chunk.len() as u64;
 
