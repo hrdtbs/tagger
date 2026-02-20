@@ -3,6 +3,7 @@
 ## Project Maintenance
 - [x] **Regular Updates**: Regularly update and organize this TODO list as tasks are completed or new requirements arise.
 - [x] **Code Quality**: Performed Rust dependency updates and Clippy audit (Clean).
+- [x] **Dependency Update (Feb 2026)**: Updated React to v19.2.4, Tailwind to v4.2.0, Vite to v7.3.1, Tauri to v2.10.2, and other dependencies to latest stable versions.
 
 ## Core Functionality (Backend)
 - [x] **AI Inference Engine**: Replace mock implementation in `tagger.rs` with real `ort` (ONNX Runtime) integration.
