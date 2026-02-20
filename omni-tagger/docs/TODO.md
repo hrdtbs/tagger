@@ -28,6 +28,7 @@
     - [x] Forward requests from `native_host` to main app (via process spawning).
     - [x] Add `register_native_host` command.
     - [x] **Data URI Support**: Implement handling of base64/data URIs from the browser extension.
+    - [ ] **Edge/Brave Support (Windows)**: Implement `register_native_host` logic for Edge and Brave on Windows (currently only Chrome is supported).
 
 ## Linux Support
 - [x] **Native Host Support**:
