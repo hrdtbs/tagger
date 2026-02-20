@@ -6,7 +6,9 @@
   "permissions": [
     "contextMenus",
     "nativeMessaging",
-    "notifications"
+    "notifications",
+    "scripting",
+    "activeTab"
   ],
   "background": {
     "service_worker": "background.js"
