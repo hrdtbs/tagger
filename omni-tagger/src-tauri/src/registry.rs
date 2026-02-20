@@ -143,18 +143,26 @@ pub async fn register_native_host(app: AppHandle, extension_id: String) -> Resul
         serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
 
         // 3. Add Registry Key
-        // HKCU\Software\Google\Chrome\NativeMessagingHosts\com.omnitagger.host
-        Command::new("reg")
-            .args(&[
-                "add",
-                "HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\com.omnitagger.host",
-                "/ve",
-                "/d",
-                manifest_path.to_str().ok_or("Invalid path")?,
-                "/f",
-            ])
-            .output()
-            .map_err(|e| format!("Failed to register native host: {}", e))?;
+        // Iterate over Chrome, Edge, and Brave registry paths
+        let registry_keys = vec![
+            "HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\com.omnitagger.host",
+            "HKCU\\Software\\Microsoft\\Edge\\NativeMessagingHosts\\com.omnitagger.host",
+            "HKCU\\Software\\BraveSoftware\\Brave-Browser\\NativeMessagingHosts\\com.omnitagger.host",
+        ];
+
+        for key in registry_keys {
+            Command::new("reg")
+                .args(&[
+                    "add",
+                    key,
+                    "/ve",
+                    "/d",
+                    manifest_path.to_str().ok_or("Invalid path")?,
+                    "/f",
+                ])
+                .output()
+                .map_err(|e| format!("Failed to register native host for {}: {}", key, e))?;
+        }
 
         Ok(())
     }
