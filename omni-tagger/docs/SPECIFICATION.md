@@ -22,7 +22,7 @@
 
 ### 2.3 AI解析（Tagger）機能
  * **ローカル推論**: プライバシーと速度のため、外部APIを使わずローカルのONNX Runtimeで実行。
- * **対応モデル**: WD14 Tagger (SwinV2/ConvNext等) を標準搭載。
+ * **対応モデル**: WD14 Tagger (SwinV2/ConvNext/ConvNextV2) を標準搭載。
  * **しきい値調整**: 抽出するタグの確信度（Probability）の下限を設定可能（例: P > 0.35）。
 
 ### 2.4 出力機能
@@ -72,6 +72,11 @@
 ### 7.1 Native Messaging Protocol
 ブラウザ拡張機能 (`browser-extension`) とネイティブホスト (`native_host.exe` / `native_host`) 間の通信プロトコル（JSON over Stdin/Stdout）。
 
+**メッセージ形式**:
+各メッセージは、以下の形式で送信する必要があります。
+1.  **Length Prefix**: メッセージ長（バイト数）を表す 32-bit (4-byte) 整数。**Native Endian** (Intel/AMD系CPUでは通常 Little Endian) でエンコード。
+2.  **JSON Payload**: UTF-8 でエンコードされた JSON 文字列。
+
 **注意**: `url` フィールドで画像URLを送信する場合、バックエンド側で再ダウンロードを行うため、Cookie認証が必要な画像や `blob:` URL は処理できません。その場合は `data` フィールド（Base64）を使用してください。
 
 **Request (Extension -> Host):**
@@ -103,3 +108,30 @@
   "message": "Error description..."
 }
 ```
+
+## 8. システム詳細・実装ノート (System Details & Implementation Notes)
+
+### 8.1 レジストリ / デスクトップエントリ
+本アプリケーションは、OS統合のために以下の設定を使用します。
+
+*   **Windows (Context Menu)**:
+    *   Key: `HKCU\Software\Classes\*\shell\OmniTagger`
+    *   Command: `"<Path\To\omni-tagger.exe>" "%1"`
+*   **Windows (Native Host Manifest)**:
+    *   Key: `HKCU\Software\Google\Chrome\NativeMessagingHosts\com.tauri.omni_tagger`
+    *   Value: `<Path\To\manifest.json>`
+*   **Linux (Context Menu)**:
+    *   File: `~/.local/share/applications/omni-tagger-context.desktop`
+*   **Linux (Native Host Manifest)**:
+    *   File: `~/.config/google-chrome/NativeMessagingHosts/com.tauri.omni_tagger.json` (Chromium系ブラウザにより異なる場合があります)
+
+### 8.2 データ保存場所
+*   **設定ファイル (AppConfig)**:
+    *   Windows: `C:\Users\<User>\AppData\Roaming\com.omnitagger.app\config.json` (標準的な `AppConfig` パス)
+    *   Linux: `~/.config/com.omnitagger.app/config.json`
+*   **モデルファイル (AppLocalData)**:
+    *   Windows: `C:\Users\<User>\AppData\Local\com.omnitagger.app\models\`
+    *   Linux: `~/.local/share/com.omnitagger.app/models/`
+
+### 8.3 Native Host バイナリ名
+ビルド構成の簡略化のため、`native_host` バイナリは **OSに関わらず** `native_host.exe` というファイル名で `resources` ディレクトリに配置・参照されます（Linux環境でも拡張子 `.exe` が付与されます）。
