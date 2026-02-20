@@ -125,7 +125,9 @@ pub async fn download_new_model(
     path_str: String,
 ) -> Result<(), String> {
     let path = resolve_model_path(&app, &path_str);
-    model_manager::download_file(&app, &url, &path).await?;
+    model_manager::download_file(&app, &url, &path)
+        .await
+        .map_err(|e| e.to_string())?;
     use tauri::Emitter;
     let _ = app.emit("model-download-finished", ());
     Ok(())

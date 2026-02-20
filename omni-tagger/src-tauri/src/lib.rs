@@ -103,7 +103,7 @@ pub fn run() {
                 )
                 .await
                 {
-                    let _ = app_handle_gui.emit("model-download-error", e.clone());
+                    let _ = app_handle_gui.emit("model-download-error", e.to_string());
                     return;
                 }
 
