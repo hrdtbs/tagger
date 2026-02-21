@@ -104,7 +104,9 @@ Exec="{}" %F
 }
 
 #[tauri::command]
-pub async fn register_native_host(app: AppHandle, extension_id: String) -> Result<(), String> {
+pub async fn register_native_host(app: AppHandle, extension_id: String, browser: Option<String>) -> Result<(), String> {
+    let browser_type = browser.unwrap_or_else(|| "chromium".to_string());
+
     #[cfg(target_os = "windows")]
     {
         // 1. Get native_host.exe path
@@ -132,26 +134,20 @@ pub async fn register_native_host(app: AppHandle, extension_id: String) -> Resul
 
         let exe_dir = native_host_path.parent().ok_or("Invalid path")?;
 
-        // 2. Create JSON Manifest
-        let manifest_content = generate_manifest_content(
-            native_host_path.to_str().unwrap_or("native_host.exe"),
-            &extension_id,
-        );
+        if browser_type == "firefox" {
+            // Firefox Logic
+            let manifest_content = generate_firefox_manifest_content(
+                native_host_path.to_str().unwrap_or("native_host.exe"),
+                &extension_id,
+            );
 
-        let manifest_path = exe_dir.join("com.omnitagger.host.json");
-        let file = std::fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
-        serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
+            // We need a separate manifest file for Firefox because content differs
+            let manifest_path = exe_dir.join("com.omnitagger.host-firefox.json");
+            let file = std::fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
+            serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
 
-        // 3. Add Registry Key
-        // Iterate over Chrome, Edge, and Brave registry paths
-        let registry_keys = vec![
-            "HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\com.omnitagger.host",
-            "HKCU\\Software\\Microsoft\\Edge\\NativeMessagingHosts\\com.omnitagger.host",
-            "HKCU\\Software\\BraveSoftware\\Brave-Browser\\NativeMessagingHosts\\com.omnitagger.host",
-        ];
-
-        for key in registry_keys {
-            Command::new("reg")
+            let key = "HKCU\\Software\\Mozilla\\NativeMessagingHosts\\com.omnitagger.host";
+             Command::new("reg")
                 .args(&[
                     "add",
                     key,
@@ -161,9 +157,41 @@ pub async fn register_native_host(app: AppHandle, extension_id: String) -> Resul
                     "/f",
                 ])
                 .output()
-                .map_err(|e| format!("Failed to register native host for {}: {}", key, e))?;
-        }
+                .map_err(|e| format!("Failed to register native host for Firefox: {}", e))?;
 
+        } else {
+            // Chromium Logic
+            let manifest_content = generate_manifest_content(
+                native_host_path.to_str().unwrap_or("native_host.exe"),
+                &extension_id,
+            );
+
+            let manifest_path = exe_dir.join("com.omnitagger.host.json");
+            let file = std::fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
+            serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
+
+            // 3. Add Registry Key
+            // Iterate over Chrome, Edge, and Brave registry paths
+            let registry_keys = vec![
+                "HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\com.omnitagger.host",
+                "HKCU\\Software\\Microsoft\\Edge\\NativeMessagingHosts\\com.omnitagger.host",
+                "HKCU\\Software\\BraveSoftware\\Brave-Browser\\NativeMessagingHosts\\com.omnitagger.host",
+            ];
+
+            for key in registry_keys {
+                Command::new("reg")
+                    .args(&[
+                        "add",
+                        key,
+                        "/ve",
+                        "/d",
+                        manifest_path.to_str().ok_or("Invalid path")?,
+                        "/f",
+                    ])
+                    .output()
+                    .map_err(|e| format!("Failed to register native host for {}: {}", key, e))?;
+            }
+        }
         Ok(())
     }
     #[cfg(target_os = "linux")]
@@ -190,55 +218,72 @@ pub async fn register_native_host(app: AppHandle, extension_id: String) -> Resul
              return Err(format!("native_host not found at {:?}", native_host_path));
         }
 
-        // 2. Generate Manifest Content
-        let manifest_content = generate_manifest_content(
-            native_host_path.to_str().ok_or("Invalid path")?,
-            &extension_id,
-        );
+        if browser_type == "firefox" {
+             // Firefox Logic
+             let manifest_content = generate_firefox_manifest_content(
+                native_host_path.to_str().ok_or("Invalid path")?,
+                &extension_id,
+            );
 
-        // 3. Write to browser config directories
-        let config_dir = app.path().config_dir().map_err(|e| e.to_string())?;
+            // Use home_dir for ~/.mozilla
+            let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
+            let mozilla_native_hosts_dir = home_dir.join(".mozilla/native-messaging-hosts");
 
-        // Common paths for Chrome, Chromium, Edge
-        let targets = vec![
-            config_dir.join("google-chrome/NativeMessagingHosts"),
-            config_dir.join("chromium/NativeMessagingHosts"),
-            config_dir.join("microsoft-edge/NativeMessagingHosts"),
-            config_dir.join("BraveSoftware/Brave-Browser/NativeMessagingHosts"),
-        ];
-
-        let mut success_count = 0;
-
-        for dir in targets {
-            // Only write if the parent browser directory exists (to avoid polluting unrelated configs)
-            if let Some(parent) = dir.parent() {
-                if parent.exists() {
-                     if !dir.exists() {
-                         let _ = fs::create_dir_all(&dir);
-                     }
-                     let manifest_path = dir.join("com.omnitagger.host.json");
-                     let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
-                     serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
-                     success_count += 1;
-                }
-            }
-        }
-
-        // Also ~/.mozilla/native-messaging-hosts/ for Firefox if we supported it, but manifest is different usually.
-        // Chrome extension usually works in FF if manifest matches.
-        // But for now let's stick to Chromium based browsers.
-
-        if success_count == 0 {
-             // Maybe no browser installed or paths differ.
-             // We can force create google-chrome path?
-             // Let's create the google-chrome one by default just in case.
-             let default_dir = config_dir.join("google-chrome/NativeMessagingHosts");
-             if !default_dir.exists() {
-                 let _ = fs::create_dir_all(&default_dir);
+             if !mozilla_native_hosts_dir.exists() {
+                 fs::create_dir_all(&mozilla_native_hosts_dir).map_err(|e| e.to_string())?;
              }
-             let manifest_path = default_dir.join("com.omnitagger.host.json");
+
+             let manifest_path = mozilla_native_hosts_dir.join("com.omnitagger.host.json");
              let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
              serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
+
+        } else {
+            // Chromium Logic
+            let manifest_content = generate_manifest_content(
+                native_host_path.to_str().ok_or("Invalid path")?,
+                &extension_id,
+            );
+
+            // 3. Write to browser config directories
+            let config_dir = app.path().config_dir().map_err(|e| e.to_string())?;
+
+            // Common paths for Chrome, Chromium, Edge
+            let targets = vec![
+                config_dir.join("google-chrome/NativeMessagingHosts"),
+                config_dir.join("chromium/NativeMessagingHosts"),
+                config_dir.join("microsoft-edge/NativeMessagingHosts"),
+                config_dir.join("BraveSoftware/Brave-Browser/NativeMessagingHosts"),
+            ];
+
+            let mut success_count = 0;
+
+            for dir in targets {
+                // Only write if the parent browser directory exists (to avoid polluting unrelated configs)
+                if let Some(parent) = dir.parent() {
+                    if parent.exists() {
+                         if !dir.exists() {
+                             let _ = fs::create_dir_all(&dir);
+                         }
+                         let manifest_path = dir.join("com.omnitagger.host.json");
+                         let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
+                         serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
+                         success_count += 1;
+                    }
+                }
+            }
+
+            if success_count == 0 {
+                 // Maybe no browser installed or paths differ.
+                 // We can force create google-chrome path?
+                 // Let's create the google-chrome one by default just in case.
+                 let default_dir = config_dir.join("google-chrome/NativeMessagingHosts");
+                 if !default_dir.exists() {
+                     let _ = fs::create_dir_all(&default_dir);
+                 }
+                 let manifest_path = default_dir.join("com.omnitagger.host.json");
+                 let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
+                 serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
+            }
         }
 
         Ok(())
@@ -247,6 +292,7 @@ pub async fn register_native_host(app: AppHandle, extension_id: String) -> Resul
     {
         let _ = app;
         let _ = extension_id;
+        let _ = browser_type;
         Err("Native host registration is only supported on Windows and Linux".to_string())
     }
 }
@@ -259,6 +305,18 @@ fn generate_manifest_content(native_host_path: &str, extension_id: &str) -> serd
         "type": "stdio",
         "allowed_origins": [
             format!("chrome-extension://{}/", extension_id)
+        ]
+    })
+}
+
+fn generate_firefox_manifest_content(native_host_path: &str, extension_id: &str) -> serde_json::Value {
+    serde_json::json!({
+        "name": "com.omnitagger.host",
+        "description": "OmniTagger Native Messaging Host",
+        "path": native_host_path,
+        "type": "stdio",
+        "allowed_extensions": [
+            extension_id
         ]
     })
 }
@@ -283,5 +341,15 @@ mod tests {
         assert_eq!(json["name"], "com.omnitagger.host");
         assert_eq!(json["path"], "/usr/bin/native_host");
         assert_eq!(json["allowed_origins"][0], "chrome-extension://abcdefg/");
+    }
+
+    #[test]
+    fn test_generate_firefox_manifest_content() {
+        let json = generate_firefox_manifest_content("/usr/bin/native_host", "extension@omnitagger");
+
+        assert_eq!(json["name"], "com.omnitagger.host");
+        assert_eq!(json["path"], "/usr/bin/native_host");
+        assert_eq!(json["allowed_extensions"][0], "extension@omnitagger");
+        assert!(json.get("allowed_origins").is_none());
     }
 }

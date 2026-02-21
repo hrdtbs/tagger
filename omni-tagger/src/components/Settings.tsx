@@ -33,6 +33,7 @@ export default function Settings() {
   const [downloadProgress, setDownloadProgress] = useState<DownloadProgress | null>(null);
   const [modelStatus, setModelStatus] = useState<'checking' | 'present' | 'missing'>('checking');
   const [extensionId, setExtensionId] = useState("");
+  const [browserType, setBrowserType] = useState("chromium");
 
   const configRef = useRef(config);
   useEffect(() => {
@@ -134,7 +135,7 @@ export default function Settings() {
           return;
       }
       try {
-          await invoke('register_native_host', { extensionId });
+          await invoke('register_native_host', { extensionId, browser: browserType });
           alert("Native Host registered successfully!");
       } catch (e) {
           alert("Failed: " + e);
@@ -183,16 +184,28 @@ export default function Settings() {
 
         {/* Browser Extension */}
         <div>
-            <h3 className="font-medium mb-2">Browser Extension (Chrome/Edge)</h3>
+            <h3 className="font-medium mb-2">Browser Extension</h3>
             <ol className="list-decimal list-inside text-sm text-gray-600 mb-4 space-y-1">
                 <li>Load the <code>browser-extension</code> folder as an "Unpacked Extension".</li>
                 <li>Copy the <strong>ID</strong> of the loaded extension.</li>
                 <li>Paste the ID below and click Register.</li>
             </ol>
+
+            <div className="mb-2">
+                 <select
+                    value={browserType}
+                    onChange={(e) => setBrowserType(e.target.value)}
+                    className="w-full p-2 border rounded bg-white text-sm"
+                 >
+                     <option value="chromium">Google Chrome / Edge / Brave</option>
+                     <option value="firefox">Mozilla Firefox</option>
+                 </select>
+            </div>
+
             <div className="flex gap-2">
                 <input
                     type="text"
-                    placeholder="e.g. abcdefghijklmnopqrstuvwxyz"
+                    placeholder={browserType === 'chromium' ? "e.g. abcdefghijklmnopqrstuvwxyz" : "e.g. extension@omnitagger"}
                     value={extensionId}
                     onChange={(e) => setExtensionId(e.target.value)}
                     className="flex-1 p-2 border rounded bg-gray-50 text-sm"
