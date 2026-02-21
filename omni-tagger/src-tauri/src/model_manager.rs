@@ -1,9 +1,9 @@
 use anyhow::{anyhow, Context, Result};
 use futures_util::StreamExt;
-use std::fs::{self, File};
-use std::io::Write;
 use std::path::Path;
 use tauri::{AppHandle, Emitter};
+use tokio::fs::{self, File};
+use tokio::io::AsyncWriteExt;
 
 const SWINV2_MODEL_URL: &str =
     "https://huggingface.co/SmilingWolf/wd-v1-4-swinv2-tagger-v2/resolve/main/model.onnx";
@@ -72,10 +72,12 @@ pub async fn download_file(app: &AppHandle, url: &str, dest: &Path) -> Result<()
 
     // Create parent directory if it doesn't exist
     if let Some(parent) = dest.parent() {
-        fs::create_dir_all(parent).context("Failed to create directory")?;
+        fs::create_dir_all(parent)
+            .await
+            .context("Failed to create directory")?;
     }
 
-    let mut file = File::create(dest).context("Failed to create file")?;
+    let mut file = File::create(dest).await.context("Failed to create file")?;
     let mut stream = res.bytes_stream();
     let mut downloaded: u64 = 0;
 
@@ -88,6 +90,7 @@ pub async fn download_file(app: &AppHandle, url: &str, dest: &Path) -> Result<()
     while let Some(item) = stream.next().await {
         let chunk = item.context("Error while downloading")?;
         file.write_all(&chunk)
+            .await
             .context("Error while writing to file")?;
 
         downloaded += chunk.len() as u64;
