@@ -16,13 +16,13 @@
      * `omni-tagger --delete-after <file_path>`: 指定された画像ファイルを処理後に削除（一時ファイル処理用）。
    * **GUI**: 通常起動（引数なし）の場合は常駐し、後続のリクエストを処理。
 
-### 2.2 ブラウザ連携 (Chrome/Edge/Firefox予定)
+### 2.2 ブラウザ連携 (Chrome/Edge/Brave/Firefox予定)
  * **ブラウザ拡張機能**: 専用の拡張機能を導入し、Webページ上の画像を右クリックして「Get Tags」を選択。
  * **Native Messaging**: ブラウザからデスクトップアプリへ直接画像データ（またはURL）を送信し、ローカルで推論を実行。
 
 ### 2.3 AI解析（Tagger）機能
  * **ローカル推論**: プライバシーと速度のため、外部APIを使わずローカルのONNX Runtimeで実行。
- * **対応モデル**: WD14 Tagger (SwinV2/ConvNext等) を標準搭載。
+ * **対応モデル**: WD14 Tagger (SwinV2 / ConvNext / ConvNextV2) を標準搭載。
  * **しきい値調整**: 抽出するタグの確信度（Probability）の下限を設定可能（例: P > 0.35）。
 
 ### 2.4 出力機能
@@ -71,6 +71,21 @@
 
 ### 7.1 Native Messaging Protocol
 ブラウザ拡張機能 (`browser-extension`) とネイティブホスト (`native_host.exe` / `native_host`) 間の通信プロトコル（JSON over Stdin/Stdout）。
+
+### 7.2 Registry & Configuration Paths
+
+**Windows Registry:**
+*   Context Menu: `HKCU\Software\Classes\*\shell\OmniTagger`
+*   Native Host (Chrome): `HKCU\Software\Google\Chrome\NativeMessagingHosts\com.omnitagger.host`
+*   Native Host (Edge): `HKCU\Software\Microsoft\Edge\NativeMessagingHosts\com.omnitagger.host`
+*   Native Host (Brave): `HKCU\Software\BraveSoftware\Brave-Browser\NativeMessagingHosts\com.omnitagger.host`
+
+**Linux Configuration:**
+*   Context Menu (.desktop): `~/.local/share/applications/omni-tagger-context.desktop`
+*   Native Host Manifest (Chrome): `~/.config/google-chrome/NativeMessagingHosts/com.omnitagger.host.json`
+*   Native Host Manifest (Chromium): `~/.config/chromium/NativeMessagingHosts/com.omnitagger.host.json`
+*   Native Host Manifest (Edge): `~/.config/microsoft-edge/NativeMessagingHosts/com.omnitagger.host.json`
+*   Native Host Manifest (Brave): `~/.config/BraveSoftware/Brave-Browser/NativeMessagingHosts/com.omnitagger.host.json`
 
 **注意**: `url` フィールドで画像URLを送信する場合、バックエンド側で再ダウンロードを行うため、Cookie認証が必要な画像や `blob:` URL は処理できません。その場合は `data` フィールド（Base64）を使用してください。
 
