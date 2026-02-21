@@ -27,8 +27,9 @@
     - [x] Implement JSON message handling (Stdin/Stdout) in `native_host`.
     - [x] Forward requests from `native_host` to main app (via process spawning).
     - [x] Add `register_native_host` command.
+    -   [ ] **Unregister Native Host**: Implement logic to remove Native Messaging Host registry keys/manifests (currently only registration is supported).
     - [x] **Data URI Support**: Implement handling of base64/data URIs from the browser extension.
-    - [x] **Edge/Brave Support (Windows)**: Implement `register_native_host` logic for Edge and Brave on Windows (currently only Chrome is supported).
+    -   [x] **Edge/Brave Support (Windows)**: Implement `register_native_host` logic for Edge and Brave on Windows.
 
 ## Linux Support
 - [x] **Native Host Support**:
@@ -85,6 +86,7 @@
     - [ ] Test Browser Extension communication (URL handling).
     - [ ] Test Browser Extension communication (Data URI handling).
     - [ ] Test Private/Blob Image processing (Fetch & Resize in browser).
+    - [ ] **Verify Brave Support**: Ensure Native Host registration works for Brave Browser.
 - [ ] **Manual Verification (Linux)**:
     - [ ] Test "Add to Context Menu" creates `~/.local/share/applications/omni-tagger-context.desktop`.
     - [ ] Test Right-click > "Get Tags" (via File Manager supporting Desktop Actions) launches app.
