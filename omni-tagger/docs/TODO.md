@@ -82,7 +82,7 @@
 - [ ] **Manual Verification (Windows)**:
     - [ ] Test "Add to Context Menu" adds registry keys correctly.
     - [ ] Test Right-click > "Get Tags" on an image file launches the app and copies tags.
-    - [x] Test "Register Host" adds the manifest file and registry key. (Added unit test for manifest generation in `registry.rs`)
+    - [x] Test "Register Host" adds the manifest file and registry key. (Added unit test for manifest generation in `registry.rs`, including Firefox support)
     - [ ] Test Browser Extension communication (URL handling).
     - [ ] Test Browser Extension communication (Data URI handling).
     - [ ] Test Private/Blob Image processing (Fetch & Resize in browser).
@@ -103,8 +103,8 @@
 - [ ] **macOS Integration**:
     - [ ] Implement Context Menu registration for macOS (Finder extensions or Automator services).
     - [ ] Implement Native Messaging Host registration for macOS.
-- [ ] **Firefox Support**:
-    - [ ] Verify manifest compatibility or create separate manifest for Firefox.
+- [x] **Firefox Support**:
+    - [x] Verify manifest compatibility or create separate manifest for Firefox. (Implemented `generate_firefox_manifest_content` and registration logic)
 - [ ] **Offline Installer**:
     - [ ] Create an installer variant that bundles the default models to avoid download requirement.
 - [ ] **Model Flexibility**:
