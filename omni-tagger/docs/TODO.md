@@ -57,7 +57,7 @@
     - [x] Tag exclusion list management.
     - [x] Add "Add/Remove to Context Menu" buttons (Support for removal added).
     - [x] Add "Install Browser Extension" instructions.
-    - [ ] **Unregister Native Host (UI)**: Add button to remove native host registration.
+    - [x] **Unregister Native Host (UI)**: Add button to remove native host registration.
 
 - [x] **Cleanup**:
     - [x] Remove Overlay UI components (`Overlay.tsx`).

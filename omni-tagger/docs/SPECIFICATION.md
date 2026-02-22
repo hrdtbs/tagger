@@ -16,7 +16,7 @@
      * `omni-tagger --delete-after <file_path>`: 指定された画像ファイルを処理後に削除（一時ファイル処理用）。
    * **GUI**: 通常起動（引数なし）の場合は常駐し、後続のリクエストを処理。
 
-### 2.2 ブラウザ連携 (Chrome/Edge/Brave/Firefox予定)
+### 2.2 ブラウザ連携 (Chrome/Edge/Brave/Firefox)
  * **ブラウザ拡張機能**: 専用の拡張機能を導入し、Webページ上の画像を右クリックして「Get Tags」を選択。
  * **Native Messaging**: ブラウザからデスクトップアプリへ直接画像データ（またはURL）を送信し、ローカルで推論を実行。
 
@@ -79,6 +79,7 @@
 *   Native Host (Chrome): `HKCU\Software\Google\Chrome\NativeMessagingHosts\com.omnitagger.host`
 *   Native Host (Edge): `HKCU\Software\Microsoft\Edge\NativeMessagingHosts\com.omnitagger.host`
 *   Native Host (Brave): `HKCU\Software\BraveSoftware\Brave-Browser\NativeMessagingHosts\com.omnitagger.host`
+*   Native Host (Firefox): `HKCU\Software\Mozilla\NativeMessagingHosts\com.omnitagger.host`
 
 **Linux Configuration:**
 *   Context Menu (.desktop): `~/.local/share/applications/omni-tagger-context.desktop`
@@ -86,6 +87,7 @@
 *   Native Host Manifest (Chromium): `~/.config/chromium/NativeMessagingHosts/com.omnitagger.host.json`
 *   Native Host Manifest (Edge): `~/.config/microsoft-edge/NativeMessagingHosts/com.omnitagger.host.json`
 *   Native Host Manifest (Brave): `~/.config/BraveSoftware/Brave-Browser/NativeMessagingHosts/com.omnitagger.host.json`
+*   Native Host Manifest (Firefox): `~/.mozilla/native-messaging-hosts/com.omnitagger.host.json`
 
 **注意**: `url` フィールドで画像URLを送信する場合、バックエンド側で再ダウンロードを行うため、Cookie認証が必要な画像や `blob:` URL は処理できません。その場合は `data` フィールド（Base64）を使用してください。
 
