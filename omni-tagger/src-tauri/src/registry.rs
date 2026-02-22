@@ -297,6 +297,71 @@ pub async fn register_native_host(app: AppHandle, extension_id: String, browser:
     }
 }
 
+#[tauri::command]
+pub async fn unregister_native_host(app: AppHandle, browser: Option<String>) -> Result<(), String> {
+    let browser_type = browser.unwrap_or_else(|| "chromium".to_string());
+
+    #[cfg(target_os = "windows")]
+    {
+        let _ = app; // Unused in Windows unregistration logic
+
+        if browser_type == "firefox" {
+            let key = "HKCU\\Software\\Mozilla\\NativeMessagingHosts\\com.omnitagger.host";
+            Command::new("reg")
+                .args(&["delete", key, "/f"])
+                .output()
+                .map_err(|e| format!("Failed to delete registry key for Firefox: {}", e))?;
+        } else {
+            let registry_keys = vec![
+                "HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\com.omnitagger.host",
+                "HKCU\\Software\\Microsoft\\Edge\\NativeMessagingHosts\\com.omnitagger.host",
+                "HKCU\\Software\\BraveSoftware\\Brave-Browser\\NativeMessagingHosts\\com.omnitagger.host",
+            ];
+
+            for key in registry_keys {
+                // We ignore errors here because the key might not exist for all browsers
+                let _ = Command::new("reg")
+                    .args(&["delete", key, "/f"])
+                    .output();
+            }
+        }
+        Ok(())
+    }
+    #[cfg(target_os = "linux")]
+    {
+        if browser_type == "firefox" {
+             let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
+             let manifest_path = home_dir.join(".mozilla/native-messaging-hosts/com.omnitagger.host.json");
+             if manifest_path.exists() {
+                 fs::remove_file(&manifest_path).map_err(|e| format!("Failed to remove manifest: {}", e))?;
+             }
+        } else {
+            let config_dir = app.path().config_dir().map_err(|e| e.to_string())?;
+            let targets = vec![
+                config_dir.join("google-chrome/NativeMessagingHosts/com.omnitagger.host.json"),
+                config_dir.join("chromium/NativeMessagingHosts/com.omnitagger.host.json"),
+                config_dir.join("microsoft-edge/NativeMessagingHosts/com.omnitagger.host.json"),
+                config_dir.join("BraveSoftware/Brave-Browser/NativeMessagingHosts/com.omnitagger.host.json"),
+            ];
+
+            for path in targets {
+                if path.exists() {
+                    // Ignore errors if removal fails (e.g. permission issues), but we should probably log them?
+                    // For now, let's just try to remove.
+                    let _ = fs::remove_file(&path);
+                }
+            }
+        }
+        Ok(())
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    {
+        let _ = app;
+        let _ = browser_type;
+        Err("Native host unregistration is only supported on Windows and Linux".to_string())
+    }
+}
+
 fn generate_manifest_content(native_host_path: &str, extension_id: &str) -> serde_json::Value {
     serde_json::json!({
         "name": "com.omnitagger.host",

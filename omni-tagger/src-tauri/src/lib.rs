@@ -135,7 +135,8 @@ pub fn run() {
             config::check_model_exists,
             config::download_new_model,
             registry::register_context_menu,
-            registry::register_native_host
+            registry::register_native_host,
+            registry::unregister_native_host
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

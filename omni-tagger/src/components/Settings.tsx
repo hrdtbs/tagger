@@ -142,6 +142,15 @@ export default function Settings() {
       }
   };
 
+  const unregisterNativeHost = async () => {
+      try {
+          await invoke('unregister_native_host', { browser: browserType });
+          alert("Native Host unregistered successfully!");
+      } catch (e) {
+          alert("Failed: " + e);
+      }
+  };
+
   if (loading) return <div className="p-6">Loading settings...</div>;
   if (!config) return <div className="p-6 text-red-500">Failed to load configuration.</div>;
 
@@ -215,6 +224,12 @@ export default function Settings() {
                     className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 text-sm"
                 >
                     Register Host
+                </button>
+                <button
+                    onClick={unregisterNativeHost}
+                    className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 text-sm"
+                >
+                    Unregister Host
                 </button>
             </div>
         </div>

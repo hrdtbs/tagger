@@ -28,7 +28,7 @@
     - [x] Implement JSON message handling (Stdin/Stdout) in `native_host`.
     - [x] Forward requests from `native_host` to main app (via process spawning).
     - [x] Add `register_native_host` command.
-    -   [ ] **Unregister Native Host**: Implement logic to remove Native Messaging Host registry keys/manifests (currently only registration is supported).
+    -   [x] **Unregister Native Host**: Implement logic to remove Native Messaging Host registry keys/manifests (Added `unregister_native_host` command and UI button).
     - [x] **Data URI Support**: Implement handling of base64/data URIs from the browser extension.
     -   [x] **Edge/Brave Support (Windows)**: Implement `register_native_host` logic for Edge and Brave on Windows.
 
@@ -84,6 +84,7 @@
     - [ ] Test "Add to Context Menu" adds registry keys correctly.
     - [ ] Test Right-click > "Get Tags" on an image file launches the app and copies tags.
     - [x] Test "Register Host" adds the manifest file and registry key. (Added unit test for manifest generation in `registry.rs`, including Firefox support)
+    - [ ] Test "Unregister Host" removes the manifest file and registry keys.
     - [ ] Test Browser Extension communication (URL handling).
     - [ ] Test Browser Extension communication (Data URI handling).
     - [ ] Test Private/Blob Image processing (Fetch & Resize in browser).
