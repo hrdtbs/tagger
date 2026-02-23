@@ -97,6 +97,10 @@
     - [ ] Test Right-click > "Get Tags" (via File Manager supporting Desktop Actions) launches app.
     - [x] Test "Register Host" creates manifest in `~/.config/google-chrome/NativeMessagingHosts/`. (Verified implementation logic in `registry.rs`)
     - [ ] Test Browser Extension communication.
+    - [ ] Verify `native_host.exe` (with .exe extension) works correctly as a Native Messaging Host on Linux (permissions and path resolution).
+
+## Model Compatibility (Pending Verification)
+- [ ] **Tag Consistency**: Verify that `selected_tags.csv` from SwinV2 (currently used for all models) is compatible with ConvNext/ConvNextV2 models.
 
 ## Non-Functional Requirements (Pending Validation)
 - [x] **Performance**: Verify tag generation completes within 1 second. (Verified via `test_inference_performance` in `tagger.rs`)
