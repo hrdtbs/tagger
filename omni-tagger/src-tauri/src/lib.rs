@@ -124,11 +124,11 @@ pub fn run() {
 
             let config = load_config(app.handle());
             {
-                let mut config_guard = app
-                    .state::<AppState>()
+                let state = app.state::<AppState>();
+                let mut config_guard = state
                     .config
                     .lock()
-                    .map_err(|e| format!("Failed to lock config state: {}", e))?;
+                    .expect("Failed to lock config state");
                 *config_guard = config.clone();
             }
             let app_handle = app.handle().clone();
