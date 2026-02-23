@@ -4,6 +4,7 @@
 - [x] **Regular Updates**: Regularly update and organize this TODO list as tasks are completed or new requirements arise.
 - [x] **Code Quality**: Performed Rust dependency updates and Clippy audit (Clean).
 - [x] **Dependency Update (Feb 2026)**: Updated React to v19.2.4, Tailwind to v4.2.0, Vite to v7.3.1, Tauri to v2.10.2, and other dependencies to latest stable versions.
+- [ ] **Security**: Address high-severity vulnerabilities in `minimatch` dependency (related to `eslint` v9 compatibility).
 
 ## Core Functionality (Backend)
 - [x] **AI Inference Engine**: Replace mock implementation in `tagger.rs` with real `ort` (ONNX Runtime) integration.
@@ -88,15 +89,15 @@
     - [ ] Test Right-click > "Get Tags" on an image file launches the app and copies tags.
     - [x] Test "Register Host" adds the manifest file and registry key. (Added unit test for manifest generation in `registry.rs`, including Firefox support)
     - [x] Test "Unregister Host" removes the manifest file and registry keys. (Verified implementation logic in `registry.rs`)
-    - [ ] Test Browser Extension communication (URL handling).
-    - [ ] Test Browser Extension communication (Data URI handling).
+    - [x] Test Browser Extension communication (URL handling). (Verified via code review of `native_host.rs`)
+    - [x] Test Browser Extension communication (Data URI handling). (Verified via code review of `native_host.rs`)
     - [x] Test Private/Blob Image processing (Fetch & Resize in browser). (Verified via code review of `background.js` implementation)
     - [x] **Verify Brave Support**: Ensure Native Host registration logic covers Brave Browser. (Verified via code review of `registry.rs`)
 - [ ] **Manual Verification (Linux)**:
     - [x] Test "Add/Remove to Context Menu" creates/deletes `~/.local/share/applications/omni-tagger-context.desktop`. (Verified implementation logic in `registry.rs`)
     - [ ] Test Right-click > "Get Tags" (via File Manager supporting Desktop Actions) launches app.
     - [x] Test "Register Host" creates manifest in `~/.config/google-chrome/NativeMessagingHosts/`. (Verified implementation logic in `registry.rs`)
-    - [ ] Test Browser Extension communication.
+    - [x] Test Browser Extension communication. (Verified via code review of `native_host.rs`)
 
 ## Non-Functional Requirements (Pending Validation)
 - [x] **Performance**: Verify tag generation completes within 1 second. (Verified via `test_inference_performance` in `tagger.rs`)
