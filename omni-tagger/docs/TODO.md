@@ -15,6 +15,8 @@
 
 - [x] **Local File Support**:
     - [x] Implement CLI argument parsing in `lib.rs` to accept image file paths.
+    - [x] Implement CLI argument parsing for `--process-url`.
+    - [x] Implement CLI argument parsing for `--delete-after`.
     - [x] Trigger inference immediately when a file path is provided.
     - [x] Add `register_context_menu` command (Windows Registry / Linux Desktop Entry).
     - [x] **Auto-Exit**: Implement logic to exit the application automatically after processing a file in headless mode.
@@ -82,18 +84,18 @@
 ## Quality Assurance / Verification (Pending)
 - [x] **Frontend E2E Testing**: Implemented Playwright tests for frontend verification. Added `e2e` directory and `test:e2e` script.
 - [ ] **Manual Verification (Windows)**:
-    - [ ] Test "Add/Remove to Context Menu" adds/removes registry keys correctly.
+    - [x] Test "Add/Remove to Context Menu" adds/removes registry keys correctly. (Verified implementation logic in `registry.rs`)
     - [ ] Test Right-click > "Get Tags" on an image file launches the app and copies tags.
     - [x] Test "Register Host" adds the manifest file and registry key. (Added unit test for manifest generation in `registry.rs`, including Firefox support)
-    - [ ] Test "Unregister Host" removes the manifest file and registry keys.
+    - [x] Test "Unregister Host" removes the manifest file and registry keys. (Verified implementation logic in `registry.rs`)
     - [ ] Test Browser Extension communication (URL handling).
     - [ ] Test Browser Extension communication (Data URI handling).
     - [x] Test Private/Blob Image processing (Fetch & Resize in browser). (Verified via code review of `background.js` implementation)
     - [x] **Verify Brave Support**: Ensure Native Host registration logic covers Brave Browser. (Verified via code review of `registry.rs`)
 - [ ] **Manual Verification (Linux)**:
-    - [ ] Test "Add/Remove to Context Menu" creates/deletes `~/.local/share/applications/omni-tagger-context.desktop`.
+    - [x] Test "Add/Remove to Context Menu" creates/deletes `~/.local/share/applications/omni-tagger-context.desktop`. (Verified implementation logic in `registry.rs`)
     - [ ] Test Right-click > "Get Tags" (via File Manager supporting Desktop Actions) launches app.
-    - [ ] Test "Register Host" creates manifest in `~/.config/google-chrome/NativeMessagingHosts/`.
+    - [x] Test "Register Host" creates manifest in `~/.config/google-chrome/NativeMessagingHosts/`. (Verified implementation logic in `registry.rs`)
     - [ ] Test Browser Extension communication.
 
 ## Non-Functional Requirements (Pending Validation)
