@@ -16,6 +16,81 @@ use tauri::{
     Emitter, Manager,
 };
 
+fn setup_menu(app: &mut tauri::App) -> tauri::Result<()> {
+    let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
+    let settings_i = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
+    let menu = Menu::with_items(app, &[&settings_i, &quit_i])?;
+
+    let _tray = TrayIconBuilder::new()
+        .menu(&menu)
+        .show_menu_on_left_click(false)
+        .on_menu_event(|app, event| match event.id.as_ref() {
+            "quit" => {
+                app.exit(0);
+            }
+            "settings" => {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }
+            _ => {}
+        })
+        .build(app)?;
+    Ok(())
+}
+
+fn init_model_loader(app_handle: tauri::AppHandle, config: AppConfig) {
+    let model_path_str = config.model_path.clone();
+    let tags_path_str = config.tags_path.clone();
+
+    tauri::async_runtime::spawn(async move {
+        let model_path = resolve_model_path(&app_handle, &model_path_str);
+        let tags_path = resolve_model_path(&app_handle, &tags_path_str);
+
+        if let Err(e) = model_manager::check_and_download_models(
+            &app_handle,
+            &model_path,
+            &tags_path,
+        )
+        .await
+        {
+            let _ = app_handle.emit("model-download-error", e.to_string());
+            return;
+        }
+
+        let state = app_handle.state::<AppState>();
+        // check if loaded
+        let is_loaded = state
+            .tagger
+            .lock()
+            .map(|g| g.is_some())
+            .unwrap_or_else(|e| {
+                eprintln!("Failed to lock tagger state for reading: {}", e);
+                false
+            });
+
+        if !is_loaded {
+            match Tagger::new(
+                model_path.to_str().unwrap_or(&model_path_str),
+                tags_path.to_str().unwrap_or(&tags_path_str),
+            ) {
+                Ok(tagger) => match state.tagger.lock() {
+                    Ok(mut guard) => {
+                        *guard = Some(tagger);
+                        println!("Tagger loaded successfully");
+                        let _ = app_handle.emit("tagger-loaded", ());
+                    }
+                    Err(e) => eprintln!("Failed to lock tagger state for writing: {}", e),
+                },
+                Err(e) => {
+                    eprintln!("Failed to load tagger: {}", e);
+                }
+            }
+        }
+    });
+}
+
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
@@ -45,29 +120,17 @@ pub fn run() {
             });
         }))
         .setup(|app| {
-            let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
-            let settings_i = MenuItem::with_id(app, "settings", "Settings", true, None::<&str>)?;
-            let menu = Menu::with_items(app, &[&settings_i, &quit_i])?;
-
-            let _tray = TrayIconBuilder::new()
-                .menu(&menu)
-                .show_menu_on_left_click(false)
-                .on_menu_event(|app, event| match event.id.as_ref() {
-                    "quit" => {
-                        app.exit(0);
-                    }
-                    "settings" => {
-                        if let Some(window) = app.get_webview_window("main") {
-                            let _ = window.show();
-                            let _ = window.set_focus();
-                        }
-                    }
-                    _ => {}
-                })
-                .build(app)?;
+            setup_menu(app)?;
 
             let config = load_config(app.handle());
-            *app.state::<AppState>().config.lock().unwrap() = config.clone();
+            {
+                let mut config_guard = app
+                    .state::<AppState>()
+                    .config
+                    .lock()
+                    .map_err(|e| format!("Failed to lock config state: {}", e))?;
+                *config_guard = config.clone();
+            }
             let app_handle = app.handle().clone();
 
             // Initial Arg Check (First Instance)
@@ -87,45 +150,7 @@ pub fn run() {
                 let _ = window.show();
             }
 
-            // Preload Tagger in background for GUI usage
-            let model_path_str = config.model_path.clone();
-            let tags_path_str = config.tags_path.clone();
-            let app_handle_gui = app.handle().clone();
-
-            tauri::async_runtime::spawn(async move {
-                let model_path = resolve_model_path(&app_handle_gui, &model_path_str);
-                let tags_path = resolve_model_path(&app_handle_gui, &tags_path_str);
-
-                if let Err(e) = model_manager::check_and_download_models(
-                    &app_handle_gui,
-                    &model_path,
-                    &tags_path,
-                )
-                .await
-                {
-                    let _ = app_handle_gui.emit("model-download-error", e.to_string());
-                    return;
-                }
-
-                let state = app_handle_gui.state::<AppState>();
-                let is_loaded = state.tagger.lock().unwrap().is_some();
-
-                if !is_loaded {
-                    match Tagger::new(
-                        model_path.to_str().unwrap_or(&model_path_str),
-                        tags_path.to_str().unwrap_or(&tags_path_str),
-                    ) {
-                        Ok(tagger) => {
-                            *state.tagger.lock().unwrap() = Some(tagger);
-                            println!("Tagger loaded successfully");
-                            let _ = app_handle_gui.emit("tagger-loaded", ());
-                        }
-                        Err(e) => {
-                            eprintln!("Failed to load tagger: {}", e);
-                        }
-                    }
-                }
-            });
+            init_model_loader(app.handle().clone(), config);
 
             Ok(())
         })
