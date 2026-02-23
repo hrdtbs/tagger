@@ -90,6 +90,7 @@ pub fn run() {
             // Preload Tagger in background for GUI usage
             let model_path_str = config.model_path.clone();
             let tags_path_str = config.tags_path.clone();
+            let preprocessing_config = config.preprocessing.clone();
             let app_handle_gui = app.handle().clone();
 
             tauri::async_runtime::spawn(async move {
@@ -114,6 +115,7 @@ pub fn run() {
                     match Tagger::new(
                         model_path.to_str().unwrap_or(&model_path_str),
                         tags_path.to_str().unwrap_or(&tags_path_str),
+                        preprocessing_config,
                     ) {
                         Ok(tagger) => {
                             *state.tagger.lock().unwrap() = Some(tagger);

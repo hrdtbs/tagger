@@ -113,5 +113,5 @@
     - [x] Verify manifest compatibility or create separate manifest for Firefox. (Implemented `generate_firefox_manifest_content` and registration logic)
 - [ ] **Offline Installer**:
     - [ ] Create an installer variant that bundles the default models to avoid download requirement.
-- [ ] **Model Flexibility**:
-    - [ ] Implement model-specific preprocessing configuration (e.g. input size, normalization) to support a wider range of ONNX models.
+- [x] **Model Flexibility**:
+    - [x] Implement model-specific preprocessing configuration (e.g. input size, normalization) to support a wider range of ONNX models.

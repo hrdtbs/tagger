@@ -1,3 +1,4 @@
+use crate::config::PreprocessConfig;
 use anyhow::{Context, Result};
 use image::{DynamicImage, GenericImageView};
 use ndarray::Array4;
@@ -7,10 +8,15 @@ use std::fs::File;
 pub struct Tagger {
     session: Session,
     tags: Vec<String>,
+    config: PreprocessConfig,
 }
 
 impl Tagger {
-    pub fn new(model_path: &str, tags_csv_path: &str) -> Result<Self> {
+    pub fn new(
+        model_path: &str,
+        tags_csv_path: &str,
+        config: PreprocessConfig,
+    ) -> Result<Self> {
         // Load tags
         let file = File::open(tags_csv_path).context("Failed to open tags file")?;
         let mut rdr = csv::ReaderBuilder::new()
@@ -32,15 +38,15 @@ impl Tagger {
             .commit_from_file(model_path)
             .context("Failed to load model")?;
 
-        Ok(Self { session, tags })
+        Ok(Self {
+            session,
+            tags,
+            config,
+        })
     }
 
-    pub fn infer(
-        &mut self,
-        image: &DynamicImage,
-        threshold: f32,
-    ) -> Result<Vec<(String, f32)>> {
-        let input_tensor = preprocess(image);
+    pub fn infer(&mut self, image: &DynamicImage, threshold: f32) -> Result<Vec<(String, f32)>> {
+        let input_tensor = preprocess(image, &self.config);
 
         // Run inference
         // Explicitly create Value from ndarray
@@ -70,20 +76,29 @@ impl Tagger {
 }
 
 // Preprocessing helper
-fn preprocess(image: &DynamicImage) -> Array4<f32> {
-    let resized = image.resize_exact(448, 448, image::imageops::FilterType::CatmullRom);
+fn preprocess(image: &DynamicImage, config: &PreprocessConfig) -> Array4<f32> {
+    let size = config.input_size;
+    let resized = image.resize_exact(size, size, image::imageops::FilterType::CatmullRom);
 
-    let mut input = Array4::<f32>::zeros((1, 448, 448, 3));
+    let mut input = Array4::<f32>::zeros((1, size as usize, size as usize, 3));
+    let normalize_factor = if config.normalize { 255.0 } else { 1.0 };
 
     for (x, y, pixel) in resized.pixels() {
-        let r = pixel[0] as f32;
-        let g = pixel[1] as f32;
-        let b = pixel[2] as f32;
+        let r = pixel[0] as f32 / normalize_factor;
+        let g = pixel[1] as f32 / normalize_factor;
+        let b = pixel[2] as f32 / normalize_factor;
 
-        // BGR order
-        input[[0, y as usize, x as usize, 0]] = b;
-        input[[0, y as usize, x as usize, 1]] = g;
-        input[[0, y as usize, x as usize, 2]] = r;
+        if config.format == "bgr" {
+            // BGR order
+            input[[0, y as usize, x as usize, 0]] = b;
+            input[[0, y as usize, x as usize, 1]] = g;
+            input[[0, y as usize, x as usize, 2]] = r;
+        } else {
+            // Assume RGB
+            input[[0, y as usize, x as usize, 0]] = r;
+            input[[0, y as usize, x as usize, 1]] = g;
+            input[[0, y as usize, x as usize, 2]] = b;
+        }
     }
 
     input
@@ -95,7 +110,7 @@ mod tests {
     use image::{Rgb, RgbImage};
 
     #[test]
-    fn test_preprocess() {
+    fn test_preprocess_default() {
         let mut img = RgbImage::new(100, 100);
         for x in 0..100 {
             for y in 0..100 {
@@ -104,13 +119,47 @@ mod tests {
         }
         let dynamic_img = DynamicImage::ImageRgb8(img);
 
-        let tensor = preprocess(&dynamic_img);
+        // Use default config, which should have normalize: false (after update)
+        // or we manually create config to test specific behavior
+        let config = PreprocessConfig {
+             input_size: 448,
+             format: "bgr".to_string(),
+             normalize: false,
+        };
+
+        let tensor = preprocess(&dynamic_img, &config);
 
         assert_eq!(tensor.shape(), &[1, 448, 448, 3]);
 
-        assert_eq!(tensor[[0, 0, 0, 0]], 0.0);
-        assert_eq!(tensor[[0, 0, 0, 1]], 0.0);
-        assert_eq!(tensor[[0, 0, 0, 2]], 255.0);
+        // Default is BGR [0, 255]
+        assert_eq!(tensor[[0, 0, 0, 0]], 0.0); // B
+        assert_eq!(tensor[[0, 0, 0, 1]], 0.0); // G
+        assert_eq!(tensor[[0, 0, 0, 2]], 255.0); // R
+    }
+
+    #[test]
+    fn test_preprocess_custom_normalized() {
+        let mut img = RgbImage::new(100, 100);
+        for x in 0..100 {
+            for y in 0..100 {
+                img.put_pixel(x, y, Rgb([255, 0, 0])); // Red
+            }
+        }
+        let dynamic_img = DynamicImage::ImageRgb8(img);
+        let config = PreprocessConfig {
+            input_size: 224,
+            format: "rgb".to_string(),
+            normalize: true, // Normalized [0, 1]
+        };
+
+        let tensor = preprocess(&dynamic_img, &config);
+
+        assert_eq!(tensor.shape(), &[1, 224, 224, 3]);
+
+        // Custom is RGB [0, 1]
+        assert_eq!(tensor[[0, 0, 0, 0]], 1.0); // R
+        assert_eq!(tensor[[0, 0, 0, 1]], 0.0); // G
+        assert_eq!(tensor[[0, 0, 0, 2]], 0.0); // B
     }
 
     #[tokio::test]
@@ -128,7 +177,12 @@ mod tests {
             return;
         }
 
-        let mut tagger = Tagger::new(model_path, tags_path).expect("Failed to load tagger");
+        let config = PreprocessConfig {
+             input_size: 448,
+             format: "bgr".to_string(),
+             normalize: false,
+        };
+        let mut tagger = Tagger::new(model_path, tags_path, config).expect("Failed to load tagger");
 
         // Create a dummy image
         let img = DynamicImage::ImageRgb8(RgbImage::new(1000, 1000)); // Large image to test resizing too
