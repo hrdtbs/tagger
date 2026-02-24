@@ -46,7 +46,7 @@
     *   **Local**: Context Menu (Registry/.desktop) -> 実行引数としてファイルパスを受け取る。CLI経由でのURL処理もサポート。
     *   **Browser**: Chrome Extension Context Menu -> Native Messaging経由でJSONメッセージを受信。
 2. **Image Loading**: ファイルパスまたはURL/Base64から画像データをメモリに展開。
-3. **Preprocessing**: 画像を 448 x 448 ピクセルにリサイズし、BGR正規化を実行 (WD14 SwinV2 標準)。
+3. **Preprocessing**: 画像を 448 x 448 ピクセルにリサイズし、BGR変換を実行 (0-255範囲) (WD14 SwinV2 標準)。
 4. **Inference**: ONNXモデルに入力し、各タグのスコア（0.0 ~ 1.0）を算出。
 5. **Post-processing**: 除外タグ（Sensitiveな内容など）をフィルタリングし、文字列に整形。
 6. **Action**: クリップボードへ書き込み、通知を表示。
