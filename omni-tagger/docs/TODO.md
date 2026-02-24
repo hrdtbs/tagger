@@ -98,6 +98,10 @@
     - [ ] Test Right-click > "Get Tags" (via File Manager supporting Desktop Actions) launches app.
     - [x] Test "Register Host" creates manifest in `~/.config/google-chrome/NativeMessagingHosts/`. (Verified implementation logic in `registry.rs`)
     - [x] Test Browser Extension communication. (Verified via code review of `native_host.rs`)
+    - [ ] Verify `native_host.exe` (with .exe extension) works correctly as a Native Messaging Host on Linux (permissions and path resolution).
+
+## Model Compatibility (Pending Verification)
+- [ ] **Tag Consistency**: Verify that `selected_tags.csv` from SwinV2 (currently used for all models) is compatible with ConvNext/ConvNextV2 models.
 
 ## Non-Functional Requirements (Pending Validation)
 - [x] **Performance**: Verify tag generation completes within 1 second. (Verified via `test_inference_performance` in `tagger.rs`)
@@ -114,5 +118,5 @@
     - [x] Verify manifest compatibility or create separate manifest for Firefox. (Implemented `generate_firefox_manifest_content` and registration logic)
 - [ ] **Offline Installer**:
     - [ ] Create an installer variant that bundles the default models to avoid download requirement.
-- [ ] **Model Flexibility**:
-    - [ ] Implement model-specific preprocessing configuration (e.g. input size, normalization) to support a wider range of ONNX models.
+- [x] **Model Flexibility**:
+    - [x] Implement model-specific preprocessing configuration (e.g. input size, normalization) to support a wider range of ONNX models.

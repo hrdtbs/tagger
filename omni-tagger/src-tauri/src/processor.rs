@@ -100,6 +100,7 @@ async fn run_inference_and_notify(app: &AppHandle, img: image::DynamicImage) -> 
         let tagger = Tagger::new(
             model_path.to_str().unwrap_or(&config.model_path),
             tags_path.to_str().unwrap_or(&config.tags_path),
+            config.preprocessing.clone(),
         )?;
 
         *state.tagger.lock().map_err(|_| anyhow::anyhow!("Failed to lock tagger"))? = Some(tagger);

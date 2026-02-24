@@ -10,18 +10,40 @@ interface DownloadProgress {
     percent: number;
 }
 
+interface PreprocessConfig {
+    input_size: number;
+    format: string;
+    normalize: boolean;
+}
+
 interface AppConfig {
   model_path: string;
   tags_path: string;
   threshold: number;
   use_underscore: boolean;
   exclusion_list: string[];
+  preprocessing: PreprocessConfig;
 }
 
 const PRESETS = [
-    { name: "WD14 SwinV2 (Default)", path: "models/model.onnx", url: "https://huggingface.co/SmilingWolf/wd-v1-4-swinv2-tagger-v2/resolve/main/model.onnx" },
-    { name: "WD14 ConvNext", path: "models/convnext.onnx", url: "https://huggingface.co/SmilingWolf/wd-v1-4-convnext-tagger-v2/resolve/main/model.onnx" },
-    { name: "WD14 ConvNextV2", path: "models/convnextv2.onnx", url: "https://huggingface.co/SmilingWolf/wd-v1-4-convnextv2-tagger-v2/resolve/main/model.onnx" }
+    {
+        name: "WD14 SwinV2 (Default)",
+        path: "models/model.onnx",
+        url: "https://huggingface.co/SmilingWolf/wd-v1-4-swinv2-tagger-v2/resolve/main/model.onnx",
+        preprocessing: { input_size: 448, format: "bgr", normalize: false }
+    },
+    {
+        name: "WD14 ConvNext",
+        path: "models/convnext.onnx",
+        url: "https://huggingface.co/SmilingWolf/wd-v1-4-convnext-tagger-v2/resolve/main/model.onnx",
+        preprocessing: { input_size: 448, format: "bgr", normalize: false }
+    },
+    {
+        name: "WD14 ConvNextV2",
+        path: "models/convnextv2.onnx",
+        url: "https://huggingface.co/SmilingWolf/wd-v1-4-convnextv2-tagger-v2/resolve/main/model.onnx",
+        preprocessing: { input_size: 448, format: "bgr", normalize: false }
+    }
 ];
 const TAGS_URL = "https://huggingface.co/SmilingWolf/wd-v1-4-swinv2-tagger-v2/resolve/main/selected_tags.csv";
 const TAGS_PATH = "models/tags.csv";
@@ -117,6 +139,13 @@ export default function Settings() {
   const updateField = <K extends keyof AppConfig>(key: K, value: AppConfig[K]) => {
       if (!config) return;
       const newConfig = { ...config, [key]: value };
+      saveConfig(newConfig);
+  };
+
+  const updatePreprocessing = <K extends keyof PreprocessConfig>(key: K, value: PreprocessConfig[K]) => {
+      if (!config) return;
+      const newPreprocessing = { ...config.preprocessing, [key]: value };
+      const newConfig = { ...config, preprocessing: newPreprocessing };
       saveConfig(newConfig);
   };
 
@@ -248,7 +277,12 @@ export default function Settings() {
                     if (val !== "custom") {
                         const preset = PRESETS.find(p => p.path === val);
                         if (preset) {
-                             const newConfig = { ...config, model_path: preset.path, tags_path: TAGS_PATH };
+                             const newConfig = {
+                                 ...config,
+                                 model_path: preset.path,
+                                 tags_path: TAGS_PATH,
+                                 preprocessing: preset.preprocessing
+                             };
                              saveConfig(newConfig);
                         }
                     }
@@ -325,6 +359,50 @@ export default function Settings() {
             </div>
         </div>
       </div>
+
+      {/* Advanced Model Settings */}
+        <div className="bg-white p-4 rounded shadow mb-6">
+            <details>
+                <summary className="text-lg font-semibold cursor-pointer">Advanced Model Settings</summary>
+                <div className="mt-4 grid grid-cols-1 md:grid-cols-3 gap-4">
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Input Size (px)</label>
+                        <input
+                            type="number"
+                            value={config.preprocessing.input_size}
+                            onChange={(e) => updatePreprocessing('input_size', parseInt(e.target.value) || 0)}
+                            className="w-full p-2 border rounded bg-gray-50 text-sm"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">Color Format</label>
+                        <select
+                            value={config.preprocessing.format}
+                            onChange={(e) => updatePreprocessing('format', e.target.value)}
+                            className="w-full p-2 border rounded bg-gray-50 text-sm"
+                        >
+                            <option value="bgr">BGR (Standard for WD14)</option>
+                            <option value="rgb">RGB</option>
+                        </select>
+                    </div>
+                    <div className="flex items-end pb-2">
+                        <label className="flex items-center space-x-2 cursor-pointer">
+                            <input
+                                type="checkbox"
+                                checked={config.preprocessing.normalize}
+                                onChange={(e) => updatePreprocessing('normalize', e.target.checked)}
+                                className="w-4 h-4 text-blue-600 rounded focus:ring-blue-500"
+                            />
+                            <span className="text-sm font-medium">Normalize (0-1 range)</span>
+                        </label>
+                    </div>
+                </div>
+                <p className="text-xs text-gray-500 mt-2">
+                    Note: WD14 models typically use 448px BGR without normalization (0-255).
+                    Change these only if using a custom model that requires different preprocessing.
+                </p>
+            </details>
+        </div>
 
       {/* Threshold & Formatting */}
       <div className="bg-white p-4 rounded shadow mb-6">
