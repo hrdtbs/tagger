@@ -1,13 +1,28 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { test, expect } from '@playwright/test';
+
+// Define the interface for the mock window
+interface MockWindow extends Window {
+  __TAURI_INTERNALS__: {
+    invoke: (cmd: string, args: unknown) => Promise<unknown>;
+    plugins: {
+      invoke: (cmd: string, args: unknown) => Promise<unknown>;
+    };
+  };
+  __TAURI__: {
+    invoke: (cmd: string, args: unknown) => Promise<unknown>;
+    event: {
+      listen: (event: string, handler: unknown) => Promise<() => void>;
+    };
+  };
+}
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
-    const mockInvoke = async (cmd: string, args: any) => {
+    const mockInvoke = async (cmd: string, args: unknown) => {
       console.log(`[Mock Invoke] ${cmd}`, args);
 
       if (cmd.startsWith('plugin:event|')) {
-          return 123; // Event ID or similar
+        return 123; // Event ID or similar
       }
 
       if (cmd === 'get_config') {
@@ -16,7 +31,7 @@ test.beforeEach(async ({ page }) => {
           tags_path: 'models/tags.csv',
           threshold: 0.5,
           use_underscore: true,
-          exclusion_list: ['nsfw', 'monochrome']
+          exclusion_list: ['nsfw', 'monochrome'],
         };
       }
       if (cmd === 'check_model_exists') {
@@ -30,18 +45,22 @@ test.beforeEach(async ({ page }) => {
       return null;
     };
 
-    (window as any).__TAURI_INTERNALS__ = {
+    const mockWindow = window as unknown as MockWindow;
+
+    mockWindow.__TAURI_INTERNALS__ = {
       invoke: mockInvoke,
       plugins: {
-          invoke: mockInvoke
-      }
+        invoke: mockInvoke,
+      },
     };
 
-    (window as any).__TAURI__ = {
-        invoke: mockInvoke,
-        event: {
-            listen: async () => { return () => {}; }
-        }
+    mockWindow.__TAURI__ = {
+      invoke: mockInvoke,
+      event: {
+        listen: async () => {
+          return () => {};
+        },
+      },
     };
   });
 });

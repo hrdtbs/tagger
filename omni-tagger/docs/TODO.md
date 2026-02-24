@@ -4,6 +4,7 @@
 - [x] **Regular Updates**: Regularly update and organize this TODO list as tasks are completed or new requirements arise.
 - [x] **Code Quality**: Performed Rust dependency updates and Clippy audit (Clean).
 - [x] **Dependency Update (Feb 2026)**: Updated React to v19.2.4, Tailwind to v4.2.0, Vite to v7.3.1, Tauri to v2.10.2, and other dependencies to latest stable versions.
+- [x] **Refactoring (Feb 2026)**: Extracted backend setup logic and improved frontend test type safety.
 - [ ] **Security**: Address high-severity vulnerabilities in `minimatch` dependency (related to `eslint` v9 compatibility).
 
 ## Core Functionality (Backend)
