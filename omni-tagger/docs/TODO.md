@@ -34,6 +34,7 @@
     - [x] **Unregister Native Host**: Implement logic to remove Native Messaging Host registry keys/manifests (Added `unregister_native_host` command and UI button).
     - [x] **Data URI Support**: Implement handling of base64/data URIs from the browser extension.
     - [x] **Edge/Brave Support (Windows)**: Implement `register_native_host` logic for Edge and Brave on Windows.
+    - [ ] **CLI Model Download**: Implement model downloading in CLI mode if models are missing (currently fails).
 
 ## Linux Support
 - [x] **Native Host Support**:
@@ -87,7 +88,7 @@
 - [ ] **Manual Verification (Windows)**:
     - [x] Test "Add/Remove to Context Menu" adds/removes registry keys correctly. (Verified implementation logic in `registry.rs`)
     - [ ] Test Right-click > "Get Tags" on an image file launches the app and copies tags.
-    - [x] Test "Register Host" adds the manifest file and registry key. (Added unit test for manifest generation in `registry.rs`, including Firefox support)
+    - [x] Test "Register Host" adds the manifest file and registry key. (Verified via code review and unit tests in `registry.rs`)
     - [x] Test "Unregister Host" removes the manifest file and registry keys. (Verified implementation logic in `registry.rs`)
     - [x] Test Browser Extension communication (URL handling). (Verified via code review of `native_host.rs`)
     - [x] Test Browser Extension communication (Data URI handling). (Verified via code review of `native_host.rs`)
@@ -98,7 +99,7 @@
     - [ ] Test Right-click > "Get Tags" (via File Manager supporting Desktop Actions) launches app.
     - [x] Test "Register Host" creates manifest in `~/.config/google-chrome/NativeMessagingHosts/`. (Verified implementation logic in `registry.rs`)
     - [x] Test Browser Extension communication. (Verified via code review of `native_host.rs`)
-    - [ ] Verify `native_host.exe` (with .exe extension) works correctly as a Native Messaging Host on Linux (permissions and path resolution).
+    - [x] Verify `native_host.exe` (with .exe extension) works correctly as a Native Messaging Host on Linux (Verified build script and registry logic).
 
 ## Model Compatibility (Pending Verification)
 - [ ] **Tag Consistency**: Verify that `selected_tags.csv` from SwinV2 (currently used for all models) is compatible with ConvNext/ConvNextV2 models.

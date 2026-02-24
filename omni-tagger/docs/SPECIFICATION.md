@@ -14,6 +14,7 @@
      * `omni-tagger <file_path>`: 指定された画像ファイルを処理。
      * `omni-tagger --process-url <url>`: 指定されたURLの画像をダウンロードして処理（Native Messaging等で使用）。
      * `omni-tagger --delete-after <file_path>`: 指定された画像ファイルを処理後に削除（一時ファイル処理用）。
+     * **注意**: CLIモードはモデルファイルが既にダウンロードされていることを前提とします（初回起動はGUIで行ってください）。
    * **GUI**: 通常起動（引数なし）の場合は常駐し、後続のリクエストを処理。
 
 ### 2.2 ブラウザ連携 (Chrome/Edge/Brave/Firefox)
@@ -71,6 +72,7 @@
 
 ### 7.1 Native Messaging Protocol
 ブラウザ拡張機能 (`browser-extension`) とネイティブホスト (`native_host.exe` / `native_host`) 間の通信プロトコル（JSON over Stdin/Stdout）。
+**注意**: 現在の実装では、Linux環境においてもネイティブホストのバイナリ名は `native_host.exe` となっています（ビルドプロセスの一貫性のため）。マニフェストファイルはこの名前を参照します。
 
 ### 7.2 Registry & Configuration Paths
 
