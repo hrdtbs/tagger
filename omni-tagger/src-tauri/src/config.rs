@@ -5,6 +5,23 @@ use serde::{Deserialize, Serialize};
 use std::fs;
 use tauri::{path::BaseDirectory, AppHandle, Manager, State};
 
+#[derive(Debug, Serialize, Deserialize, Clone, PartialEq)]
+pub struct PreprocessConfig {
+    pub input_size: u32,
+    pub format: String, // "bgr" or "rgb"
+    pub normalize: bool,
+}
+
+impl Default for PreprocessConfig {
+    fn default() -> Self {
+        Self {
+            input_size: 448,
+            format: "bgr".to_string(),
+            normalize: false,
+        }
+    }
+}
+
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct AppConfig {
     pub model_path: String,
@@ -12,6 +29,8 @@ pub struct AppConfig {
     pub threshold: f32,
     pub use_underscore: bool,
     pub exclusion_list: Vec<String>,
+    #[serde(default)]
+    pub preprocessing: PreprocessConfig,
 }
 
 impl Default for AppConfig {
@@ -22,6 +41,7 @@ impl Default for AppConfig {
             threshold: 0.35,
             use_underscore: false,
             exclusion_list: Vec::new(),
+            preprocessing: PreprocessConfig::default(),
         }
     }
 }
@@ -83,13 +103,14 @@ pub async fn set_config(
 ) -> Result<(), String> {
     let mut config_guard = state.config.lock().map_err(|e| e.to_string())?;
 
-    let model_changed =
-        config_guard.model_path != config.model_path || config_guard.tags_path != config.tags_path;
+    let should_reload_tagger = config_guard.model_path != config.model_path
+        || config_guard.tags_path != config.tags_path
+        || config_guard.preprocessing != config.preprocessing;
 
     *config_guard = config.clone();
     save_config(&app, &config)?;
 
-    if model_changed {
+    if should_reload_tagger {
         let mut tagger_guard = state.tagger.lock().map_err(|e| e.to_string())?;
         let model_path = resolve_model_path(&app, &config.model_path);
         let tags_path = resolve_model_path(&app, &config.tags_path);
@@ -97,6 +118,7 @@ pub async fn set_config(
         match Tagger::new(
             model_path.to_str().unwrap_or(&config.model_path),
             tags_path.to_str().unwrap_or(&config.tags_path),
+            config.preprocessing.clone(),
         ) {
             Ok(tagger) => {
                 *tagger_guard = Some(tagger);

@@ -1,101 +1,73 @@
-from playwright.sync_api import Page, expect, sync_playwright
-import time
+from playwright.sync_api import sync_playwright
 
-def verify_overlay(page: Page):
-    # Scenario 1: Main Window (Settings)
+def run(p):
+    browser = p.chromium.launch(headless=True)
+    page = browser.new_page()
+
+    # Mock Tauri internals
     page.add_init_script("""
-      window.__TAURI_INTERNALS__ = {
-        metadata: {
-          currentWindow: { label: "main" }
-        },
-        invoke: async (cmd, args) => {
-            console.log("Invoke:", cmd, args);
-            if (cmd === 'get_config') return {
-                model_path: "mock_model.onnx",
-                tags_path: "mock_tags.csv",
-                threshold: 0.35,
-                use_underscore: false,
-                exclusion_list: []
-            };
-            return null;
-        },
-        transformCallback: (c) => c
-      };
-    """)
-
-    page.goto("http://localhost:1420")
-    expect(page.get_by_text("OmniTagger Settings")).to_be_visible()
-    print("Settings view verified.")
-
-    # Scenario 2: Overlay
-    page.goto("about:blank")
-    page.add_init_script("""
-      window.__TAURI_INTERNALS__ = {
-        metadata: {
-          currentWindow: { label: "overlay-1" }
-        },
-        invoke: async (cmd, args) => {
-            console.log("Invoke called:", cmd, args);
-            if (cmd === 'get_overlay_image') {
-                return "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==";
+        window.__TAURI_INTERNALS__ = {};
+        window.__TAURI_INTERNALS__.invoke = async (cmd, args) => {
+            console.log(`[Mock Invoke] ${cmd}`, args);
+            if (cmd === 'get_config') {
+                return {
+                    model_path: 'models/model.onnx',
+                    tags_path: 'models/tags.csv',
+                    threshold: 0.35,
+                    use_underscore: false,
+                    exclusion_list: [],
+                    preprocessing: {
+                        input_size: 448,
+                        format: 'bgr',
+                        normalize: false
+                    }
+                };
             }
-            if (cmd === 'process_selection') {
-                return "tag1, tag2";
+            if (cmd === 'check_model_exists') {
+                return true;
             }
-            if (cmd === 'close_all_overlays') {
+            if (cmd === 'set_config') {
+                console.log('set_config called', args);
                 return;
             }
             return null;
-        },
-        transformCallback: (c) => c
-      };
-    """)
+        };
 
-    # Capture console logs
-    logs = []
-    page.on("console", lambda msg: logs.append(msg.text))
+        window.__TAURI_INTERNALS__.plugins = {
+            invoke: window.__TAURI_INTERNALS__.invoke
+        };
+
+        window.__TAURI__ = {
+            invoke: window.__TAURI_INTERNALS__.invoke,
+            event: {
+                listen: async () => { return () => {}; }
+            }
+        };
+    """)
 
     page.goto("http://localhost:1420")
 
-    expect(page.locator("img[alt='Screen Capture']")).to_be_visible()
-    print("Overlay view verified.")
+    # Wait for settings to load
+    page.wait_for_selector("text=OmniTagger Settings")
 
-    # Simulate selection
-    page.mouse.move(50, 50)
-    page.mouse.down()
-    page.mouse.move(150, 150)
-    page.mouse.up()
+    print("Page loaded")
 
-    # Wait a bit for async process
-    time.sleep(1)
+    # Expand Advanced Model Settings
+    page.click("text=Advanced Model Settings")
 
-    # Check logs for process_selection and close_all_overlays
-    process_called = any("process_selection" in log for log in logs)
-    close_called = any("close_all_overlays" in log for log in logs)
+    # Check if inputs are visible
+    page.wait_for_selector("text=Input Size (px)")
+    page.wait_for_selector("text=Color Format")
+    page.wait_for_selector("text=Normalize (0-1 range)")
 
-    if process_called:
-        print("process_selection called.")
-    else:
-        print("process_selection NOT called.")
+    # Wait a bit for transition
+    page.wait_for_timeout(500)
 
-    if close_called:
-        print("close_all_overlays called.")
-    else:
-        print("close_all_overlays NOT called.")
+    # Take screenshot
+    page.screenshot(path="/home/jules/verification/settings_advanced.png")
+    print("Screenshot saved to /home/jules/verification/settings_advanced.png")
 
-    page.screenshot(path="/home/jules/verification/overlay_selection.png")
+    browser.close()
 
-if __name__ == "__main__":
-    import os
-    os.makedirs("/home/jules/verification", exist_ok=True)
-    with sync_playwright() as p:
-        browser = p.chromium.launch(headless=True)
-        page = browser.new_page()
-        try:
-            verify_overlay(page)
-        except Exception as e:
-            print(f"Error: {e}")
-            page.screenshot(path="/home/jules/verification/error.png")
-            raise
-        finally:
-            browser.close()
+with sync_playwright() as p:
+    run(p)
