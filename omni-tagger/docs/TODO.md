@@ -77,11 +77,11 @@
     - [x] GitHub Actions for building Windows/macOS/Linux binaries.
 
 ## Known Issues & Bugs
-- [x] **Backend Model Download Logic Flaw**: The `check_and_download_models` function in `src-tauri/src/model_manager.rs` uses a hardcoded URL (WD14 SwinV2). If a user selects a different model (e.g. ConvNext) in settings but the file is missing on startup, the application will incorrectly download the SwinV2 model to the configured path.
+- [x] **Backend Model Download Logic Flaw**: The `check_and_download_models` function in `src-tauri/src/model_manager.rs` uses a hardcoded URL (WD14 SwinV2). If a user selects a different model (e.g. ConvNext) in settings but the file is missing on startup, the application will incorrectly download the SwinV2 model to the configured path. (Fixed: Implemented filename-based URL resolution).
 - [x] **Private/Blob URL Handling**: Implemented logic in browser extension to fetch image data (handling auth/blob URLs) and resize it before sending to backend as Data URI.
 
 ## Technical Debt
-- [x] **Native Host Cleanup**: Implement cleanup mechanism for temporary files created by `native_host` when processing Data URIs.
+- [x] **Native Host Cleanup**: Implement cleanup mechanism for temporary files created by `native_host` when processing Data URIs. (Implemented: `native_host` passes `--delete-after` flag to main app).
 
 ## Quality Assurance / Verification (Pending)
 - [x] **Frontend E2E Testing**: Implemented Playwright tests for frontend verification. Added `e2e` directory and `test:e2e` script.
@@ -101,12 +101,12 @@
     - [x] Test Browser Extension communication. (Verified via code review of `native_host.rs`)
     - [x] Verify `native_host.exe` (with .exe extension) works correctly as a Native Messaging Host on Linux (Verified build script and registry logic).
 
-## Model Compatibility (Pending Verification)
-- [ ] **Tag Consistency**: Verify that `selected_tags.csv` from SwinV2 (currently used for all models) is compatible with ConvNext/ConvNextV2 models.
+## Model Compatibility
+- [x] **Tag Consistency**: Verify that `selected_tags.csv` from SwinV2 (currently used for all models) is compatible with ConvNext/ConvNextV2 models. (Verified: WD14 V2 models share the same tag set).
 
-## Non-Functional Requirements (Pending Validation)
+## Non-Functional Requirements
 - [x] **Performance**: Verify tag generation completes within 1 second. (Verified via `test_inference_performance` in `tagger.rs`)
-- [ ] **Size**: Verify application size is under 100MB (excluding models). (Pending: Build environment limitations prevent local verification)
+- [ ] **Size**: Verify application size is under 100MB (excluding models).
 - [x] **Offline Operation**: Verify core features work without internet (after initial model download). (Verified via `test_check_file_exists` unit test and `model_manager` logic review)
 
 ## Future Improvements / Cross-Platform
