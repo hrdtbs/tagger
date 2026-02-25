@@ -1,4 +1,5 @@
 use crate::config::{get_config, resolve_model_path};
+use crate::model_manager;
 use crate::state::AppState;
 use crate::tagger::Tagger;
 use anyhow::{Context, Result};
@@ -96,6 +97,10 @@ async fn run_inference_and_notify(app: &AppHandle, img: image::DynamicImage) -> 
         // Load it now
         let model_path = resolve_model_path(app, &config.model_path);
         let tags_path = resolve_model_path(app, &config.tags_path);
+
+        model_manager::check_and_download_models(app, &model_path, &tags_path)
+            .await
+            .context("Failed to check/download models")?;
 
         let tagger = Tagger::new(
             model_path.to_str().unwrap_or(&config.model_path),
