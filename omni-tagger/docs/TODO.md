@@ -5,8 +5,8 @@
 - [x] **Code Quality**: Performed Rust dependency updates and Clippy audit (Clean).
 - [x] **Dependency Update (Feb 2026)**: Updated React to v19.2.4, Tailwind to v4.2.0, Vite to v7.3.1, Tauri to v2.10.2, ESLint to v10.0.2 (verified compatibility), and other dependencies to latest stable versions.
 - [x] **Security**: Address high-severity vulnerabilities in `minimatch` dependency (related to `eslint` v9 compatibility).
-- [ ] **Security**: Address high-severity vulnerability in `rollup` (GHSA-mw96-cpmx-2vgc).
-- [x] **CI**: Fix missing Linux build dependencies (glib-2.0, libgtk-3-dev, etc.) to enable local backend testing. (Added `libxdo-dev` and docs).
+- [x] **Security**: Address high-severity vulnerability in `rollup` (GHSA-mw96-cpmx-2vgc).
+- [x] **CI**: Fix missing Linux build dependencies (glib-2.0, libgtk-3-dev, etc.) to enable local backend testing.
 
 ## Core Functionality (Backend)
 - [x] **AI Inference Engine**: Replace mock implementation in `tagger.rs` with real `ort` (ONNX Runtime) integration.
