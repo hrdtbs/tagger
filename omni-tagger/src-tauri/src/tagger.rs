@@ -12,11 +12,7 @@ pub struct Tagger {
 }
 
 impl Tagger {
-    pub fn new(
-        model_path: &str,
-        tags_csv_path: &str,
-        config: PreprocessConfig,
-    ) -> Result<Self> {
+    pub fn new(model_path: &str, tags_csv_path: &str, config: PreprocessConfig) -> Result<Self> {
         // Load tags
         let file = File::open(tags_csv_path).context("Failed to open tags file")?;
         let mut rdr = csv::ReaderBuilder::new()
@@ -122,9 +118,9 @@ mod tests {
         // Use default config, which should have normalize: false (after update)
         // or we manually create config to test specific behavior
         let config = PreprocessConfig {
-             input_size: 448,
-             format: "bgr".to_string(),
-             normalize: false,
+            input_size: 448,
+            format: "bgr".to_string(),
+            normalize: false,
         };
 
         let tensor = preprocess(&dynamic_img, &config);
@@ -178,9 +174,9 @@ mod tests {
         }
 
         let config = PreprocessConfig {
-             input_size: 448,
-             format: "bgr".to_string(),
-             normalize: false,
+            input_size: 448,
+            format: "bgr".to_string(),
+            normalize: false,
         };
         let mut tagger = Tagger::new(model_path, tags_path, config).expect("Failed to load tagger");
 
@@ -197,6 +193,10 @@ mod tests {
         println!("Inference time: {:?}", duration);
 
         // Verify performance constraint (e.g. < 1 second)
-        assert!(duration.as_secs_f32() < 1.0, "Inference took too long: {:?}", duration);
+        assert!(
+            duration.as_secs_f32() < 1.0,
+            "Inference took too long: {:?}",
+            duration
+        );
     }
 }

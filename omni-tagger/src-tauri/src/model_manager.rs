@@ -62,11 +62,7 @@ pub fn check_file_exists(path: &Path) -> bool {
 
 pub async fn download_file(app: &AppHandle, url: &str, dest: &Path) -> Result<()> {
     let client = reqwest::Client::new();
-    let res = client
-        .get(url)
-        .send()
-        .await
-        .context("Failed to connect")?;
+    let res = client.get(url).send().await.context("Failed to connect")?;
 
     let total_size = res.content_length().unwrap_or(0);
 

@@ -1,9 +1,9 @@
-use tauri::AppHandle;
-use tauri::{path::BaseDirectory, Manager};
-#[cfg(target_os = "windows")]
-use std::process::Command;
 #[cfg(target_os = "linux")]
 use std::fs;
+#[cfg(target_os = "windows")]
+use std::process::Command;
+use tauri::AppHandle;
+use tauri::{path::BaseDirectory, Manager};
 
 #[tauri::command]
 pub async fn register_context_menu(app: AppHandle, enable: bool) -> Result<(), String> {
@@ -54,11 +54,14 @@ pub async fn register_context_menu(app: AppHandle, enable: bool) -> Result<(), S
     #[cfg(target_os = "linux")]
     {
         // On Linux, we create a .desktop file in ~/.local/share/applications/
-        let data_local_dir = app.path().data_dir().map_err(|e: tauri::Error| e.to_string())?;
+        let data_local_dir = app
+            .path()
+            .data_dir()
+            .map_err(|e: tauri::Error| e.to_string())?;
         let applications_dir = data_local_dir.join("applications");
 
         if !applications_dir.exists() {
-             fs::create_dir_all(&applications_dir).map_err(|e| e.to_string())?;
+            fs::create_dir_all(&applications_dir).map_err(|e| e.to_string())?;
         }
 
         let desktop_file_path = applications_dir.join("omni-tagger-context.desktop");
@@ -69,9 +72,11 @@ pub async fn register_context_menu(app: AppHandle, enable: bool) -> Result<(), S
 
             // Generate content
             let content = generate_desktop_file_content(exe_str);
-            fs::write(&desktop_file_path, content).map_err(|e| format!("Failed to write desktop file: {}", e))?;
+            fs::write(&desktop_file_path, content)
+                .map_err(|e| format!("Failed to write desktop file: {}", e))?;
         } else if desktop_file_path.exists() {
-            fs::remove_file(&desktop_file_path).map_err(|e| format!("Failed to remove desktop file: {}", e))?;
+            fs::remove_file(&desktop_file_path)
+                .map_err(|e| format!("Failed to remove desktop file: {}", e))?;
         }
         Ok(())
     }
@@ -86,7 +91,7 @@ pub async fn register_context_menu(app: AppHandle, enable: bool) -> Result<(), S
 #[cfg(target_os = "linux")]
 fn generate_desktop_file_content(exe_path: &str) -> String {
     format!(
-r#"[Desktop Entry]
+        r#"[Desktop Entry]
 Type=Application
 Name=OmniTagger
 Comment=Get AI Tags for images
@@ -100,11 +105,17 @@ Actions=GetTags;
 [Desktop Action GetTags]
 Name=Get Tags
 Exec="{}" %F
-"#, exe_path, exe_path)
+"#,
+        exe_path, exe_path
+    )
 }
 
 #[tauri::command]
-pub async fn register_native_host(app: AppHandle, extension_id: String, browser: Option<String>) -> Result<(), String> {
+pub async fn register_native_host(
+    app: AppHandle,
+    extension_id: String,
+    browser: Option<String>,
+) -> Result<(), String> {
     let browser_type = browser.unwrap_or_else(|| "chromium".to_string());
 
     #[cfg(target_os = "windows")]
@@ -147,7 +158,7 @@ pub async fn register_native_host(app: AppHandle, extension_id: String, browser:
             serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
 
             let key = "HKCU\\Software\\Mozilla\\NativeMessagingHosts\\com.omnitagger.host";
-             Command::new("reg")
+            Command::new("reg")
                 .args(&[
                     "add",
                     key,
@@ -158,7 +169,6 @@ pub async fn register_native_host(app: AppHandle, extension_id: String, browser:
                 ])
                 .output()
                 .map_err(|e| format!("Failed to register native host for Firefox: {}", e))?;
-
         } else {
             // Chromium Logic
             let manifest_content = generate_manifest_content(
@@ -207,20 +217,24 @@ pub async fn register_native_host(app: AppHandle, extension_id: String, browser:
         let native_host_path = if resource_path.exists() {
             resource_path
         } else {
-             // Fallback dev path logic similar to Windows but checking for no-extension too
-             let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
-             let exe_dir = exe_path.parent().ok_or("Invalid path")?;
-             let p = exe_dir.join("native_host");
-             if p.exists() { p } else { exe_dir.join("native_host.exe") }
+            // Fallback dev path logic similar to Windows but checking for no-extension too
+            let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
+            let exe_dir = exe_path.parent().ok_or("Invalid path")?;
+            let p = exe_dir.join("native_host");
+            if p.exists() {
+                p
+            } else {
+                exe_dir.join("native_host.exe")
+            }
         };
 
         if !native_host_path.exists() {
-             return Err(format!("native_host not found at {:?}", native_host_path));
+            return Err(format!("native_host not found at {:?}", native_host_path));
         }
 
         if browser_type == "firefox" {
-             // Firefox Logic
-             let manifest_content = generate_firefox_manifest_content(
+            // Firefox Logic
+            let manifest_content = generate_firefox_manifest_content(
                 native_host_path.to_str().ok_or("Invalid path")?,
                 &extension_id,
             );
@@ -229,14 +243,13 @@ pub async fn register_native_host(app: AppHandle, extension_id: String, browser:
             let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
             let mozilla_native_hosts_dir = home_dir.join(".mozilla/native-messaging-hosts");
 
-             if !mozilla_native_hosts_dir.exists() {
-                 fs::create_dir_all(&mozilla_native_hosts_dir).map_err(|e| e.to_string())?;
-             }
+            if !mozilla_native_hosts_dir.exists() {
+                fs::create_dir_all(&mozilla_native_hosts_dir).map_err(|e| e.to_string())?;
+            }
 
-             let manifest_path = mozilla_native_hosts_dir.join("com.omnitagger.host.json");
-             let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
-             serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
-
+            let manifest_path = mozilla_native_hosts_dir.join("com.omnitagger.host.json");
+            let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
+            serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
         } else {
             // Chromium Logic
             let manifest_content = generate_manifest_content(
@@ -261,28 +274,29 @@ pub async fn register_native_host(app: AppHandle, extension_id: String, browser:
                 // Only write if the parent browser directory exists (to avoid polluting unrelated configs)
                 if let Some(parent) = dir.parent() {
                     if parent.exists() {
-                         if !dir.exists() {
-                             let _ = fs::create_dir_all(&dir);
-                         }
-                         let manifest_path = dir.join("com.omnitagger.host.json");
-                         let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
-                         serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
-                         success_count += 1;
+                        if !dir.exists() {
+                            let _ = fs::create_dir_all(&dir);
+                        }
+                        let manifest_path = dir.join("com.omnitagger.host.json");
+                        let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
+                        serde_json::to_writer_pretty(file, &manifest_content)
+                            .map_err(|e| e.to_string())?;
+                        success_count += 1;
                     }
                 }
             }
 
             if success_count == 0 {
-                 // Maybe no browser installed or paths differ.
-                 // We can force create google-chrome path?
-                 // Let's create the google-chrome one by default just in case.
-                 let default_dir = config_dir.join("google-chrome/NativeMessagingHosts");
-                 if !default_dir.exists() {
-                     let _ = fs::create_dir_all(&default_dir);
-                 }
-                 let manifest_path = default_dir.join("com.omnitagger.host.json");
-                 let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
-                 serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
+                // Maybe no browser installed or paths differ.
+                // We can force create google-chrome path?
+                // Let's create the google-chrome one by default just in case.
+                let default_dir = config_dir.join("google-chrome/NativeMessagingHosts");
+                if !default_dir.exists() {
+                    let _ = fs::create_dir_all(&default_dir);
+                }
+                let manifest_path = default_dir.join("com.omnitagger.host.json");
+                let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
+                serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
             }
         }
 
@@ -320,9 +334,7 @@ pub async fn unregister_native_host(app: AppHandle, browser: Option<String>) -> 
 
             for key in registry_keys {
                 // We ignore errors here because the key might not exist for all browsers
-                let _ = Command::new("reg")
-                    .args(&["delete", key, "/f"])
-                    .output();
+                let _ = Command::new("reg").args(&["delete", key, "/f"]).output();
             }
         }
         Ok(())
@@ -330,18 +342,22 @@ pub async fn unregister_native_host(app: AppHandle, browser: Option<String>) -> 
     #[cfg(target_os = "linux")]
     {
         if browser_type == "firefox" {
-             let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
-             let manifest_path = home_dir.join(".mozilla/native-messaging-hosts/com.omnitagger.host.json");
-             if manifest_path.exists() {
-                 fs::remove_file(&manifest_path).map_err(|e| format!("Failed to remove manifest: {}", e))?;
-             }
+            let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
+            let manifest_path =
+                home_dir.join(".mozilla/native-messaging-hosts/com.omnitagger.host.json");
+            if manifest_path.exists() {
+                fs::remove_file(&manifest_path)
+                    .map_err(|e| format!("Failed to remove manifest: {}", e))?;
+            }
         } else {
             let config_dir = app.path().config_dir().map_err(|e| e.to_string())?;
             let targets = vec![
                 config_dir.join("google-chrome/NativeMessagingHosts/com.omnitagger.host.json"),
                 config_dir.join("chromium/NativeMessagingHosts/com.omnitagger.host.json"),
                 config_dir.join("microsoft-edge/NativeMessagingHosts/com.omnitagger.host.json"),
-                config_dir.join("BraveSoftware/Brave-Browser/NativeMessagingHosts/com.omnitagger.host.json"),
+                config_dir.join(
+                    "BraveSoftware/Brave-Browser/NativeMessagingHosts/com.omnitagger.host.json",
+                ),
             ];
 
             for path in targets {
@@ -374,7 +390,10 @@ fn generate_manifest_content(native_host_path: &str, extension_id: &str) -> serd
     })
 }
 
-fn generate_firefox_manifest_content(native_host_path: &str, extension_id: &str) -> serde_json::Value {
+fn generate_firefox_manifest_content(
+    native_host_path: &str,
+    extension_id: &str,
+) -> serde_json::Value {
     serde_json::json!({
         "name": "com.omnitagger.host",
         "description": "OmniTagger Native Messaging Host",
@@ -410,7 +429,8 @@ mod tests {
 
     #[test]
     fn test_generate_firefox_manifest_content() {
-        let json = generate_firefox_manifest_content("/usr/bin/native_host", "extension@omnitagger");
+        let json =
+            generate_firefox_manifest_content("/usr/bin/native_host", "extension@omnitagger");
 
         assert_eq!(json["name"], "com.omnitagger.host");
         assert_eq!(json["path"], "/usr/bin/native_host");
