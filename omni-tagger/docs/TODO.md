@@ -87,7 +87,7 @@
 
 ## Quality Assurance / Verification
 - [x] **Frontend E2E Testing**: Implemented Playwright tests for frontend verification. Added `e2e` directory and `test:e2e` script.
-- [ ] **Backend Unit Testing**: Run and verify cargo tests pass (requires fixed CI environment).
+- [x] **Backend Unit Testing**: Run and verify cargo tests pass (requires fixed CI environment). (Verified 9 passed tests).
 - [ ] **Manual Verification (Windows)**:
     - [x] Test "Add/Remove to Context Menu" adds/removes registry keys correctly. (Verified implementation logic in `registry.rs`)
     - [ ] Test Right-click > "Get Tags" on an image file launches the app and copies tags.
