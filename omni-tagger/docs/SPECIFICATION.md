@@ -14,7 +14,6 @@
      * `omni-tagger <file_path>`: 指定された画像ファイルを処理。
      * `omni-tagger --process-url <url>`: 指定されたURLの画像をダウンロードして処理（Native Messaging等で使用）。
      * `omni-tagger --delete-after <file_path>`: 指定された画像ファイルを処理後に削除（一時ファイル処理用）。
-     * **注意**: 現在のCLIモードはモデルファイルが既にダウンロードされていることを前提とします（将来的に自動ダウンロード機能を追加予定）。
    * **GUI**: 通常起動（引数なし）の場合は常駐し、後続のリクエストを処理。
 
 ### 2.2 ブラウザ連携 (Chrome/Edge/Brave/Firefox)

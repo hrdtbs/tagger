@@ -50,6 +50,7 @@ OmniTagger is a desktop application powered by Tauri and ONNX Runtime to automat
 - Rust (latest stable)
 - Node.js (v18+)
 - VS Code (recommended)
+- **Linux**: See [docs/LINUX_SETUP.md](docs/LINUX_SETUP.md) for system dependencies.
 
 ### Setup
 1. Clone the repository.
