@@ -5,6 +5,8 @@
 - [x] **Code Quality**: Performed Rust dependency updates and Clippy audit (Clean).
 - [x] **Dependency Update (Feb 2026)**: Updated React to v19.2.4, Tailwind to v4.2.0, Vite to v7.3.1, Tauri to v2.10.2, and other dependencies to latest stable versions.
 - [x] **Security**: Address high-severity vulnerabilities in `minimatch` dependency (related to `eslint` v9 compatibility).
+- [ ] **Security**: Address high-severity vulnerability in `rollup` (GHSA-mw96-cpmx-2vgc).
+- [ ] **CI**: Fix missing Linux build dependencies (glib-2.0, libgtk-3-dev, etc.) to enable local backend testing.
 
 ## Core Functionality (Backend)
 - [x] **AI Inference Engine**: Replace mock implementation in `tagger.rs` with real `ort` (ONNX Runtime) integration.
@@ -83,8 +85,9 @@
 ## Technical Debt
 - [x] **Native Host Cleanup**: Implement cleanup mechanism for temporary files created by `native_host` when processing Data URIs. (Implemented: `native_host` passes `--delete-after` flag to main app).
 
-## Quality Assurance / Verification (Pending)
+## Quality Assurance / Verification
 - [x] **Frontend E2E Testing**: Implemented Playwright tests for frontend verification. Added `e2e` directory and `test:e2e` script.
+- [ ] **Backend Unit Testing**: Run and verify cargo tests pass (requires fixed CI environment).
 - [ ] **Manual Verification (Windows)**:
     - [x] Test "Add/Remove to Context Menu" adds/removes registry keys correctly. (Verified implementation logic in `registry.rs`)
     - [ ] Test Right-click > "Get Tags" on an image file launches the app and copies tags.
