@@ -3,7 +3,7 @@
 ## Project Maintenance
 - [x] **Regular Updates**: Regularly update and organize this TODO list as tasks are completed or new requirements arise.
 - [x] **Code Quality**: Performed Rust dependency updates and Clippy audit (Clean).
-- [x] **Dependency Update (Feb 2026)**: Updated React to v19.2.4, Tailwind to v4.2.0, Vite to v7.3.1, Tauri to v2.10.2, and other dependencies to latest stable versions.
+- [x] **Dependency Update (Feb 2026)**: Updated React to v19.2.4, Tailwind to v4.2.0, Vite to v7.3.1, Tauri to v2.10.2, ESLint to v10.0.2 (verified compatibility), and other dependencies to latest stable versions.
 - [x] **Security**: Address high-severity vulnerabilities in `minimatch` dependency (related to `eslint` v9 compatibility).
 - [ ] **Security**: Address high-severity vulnerability in `rollup` (GHSA-mw96-cpmx-2vgc).
 - [ ] **CI**: Fix missing Linux build dependencies (glib-2.0, libgtk-3-dev, etc.) to enable local backend testing.
@@ -103,6 +103,7 @@
     - [x] Test "Register Host" creates manifest in `~/.config/google-chrome/NativeMessagingHosts/`. (Verified implementation logic in `registry.rs`)
     - [x] Test Browser Extension communication. (Verified via code review of `native_host.rs`)
     - [x] Verify `native_host.exe` (with .exe extension) works correctly as a Native Messaging Host on Linux (Verified build script and registry logic).
+    - [x] Verify Firefox Manifest Generation: Ensure manifest uses `allowed_extensions` with the correct ID. (Verified implementation logic in `registry.rs`).
 
 ## Model Compatibility
 - [x] **Tag Consistency**: Verify that `selected_tags.csv` from SwinV2 (currently used for all models) is compatible with ConvNext/ConvNextV2 models. (Verified: WD14 V2 models share the same tag set).
