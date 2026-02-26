@@ -36,7 +36,7 @@
     - [x] **Unregister Native Host**: Implement logic to remove Native Messaging Host registry keys/manifests (Added `unregister_native_host` command and UI button).
     - [x] **Data URI Support**: Implement handling of base64/data URIs from the browser extension.
     - [x] **Edge/Brave Support (Windows)**: Implement `register_native_host` logic for Edge and Brave on Windows.
-    - [ ] **CLI Model Download**: Implement model downloading in CLI mode if models are missing (currently fails).
+    - [x] **CLI Model Download**: Implement model downloading in CLI mode if models are missing (currently fails).
 
 ## Linux Support
 - [x] **Native Host Support**:
