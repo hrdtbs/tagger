@@ -72,10 +72,13 @@ async fn process_image_url(app: &AppHandle, url: String) -> Result<()> {
     // Download image
     // Using reqwest
     let client = reqwest::Client::new();
-    let resp = client.get(&url).send().await.context("Failed to send request")?;
+    let resp = client
+        .get(&url)
+        .send()
+        .await
+        .context("Failed to send request")?;
     let bytes = resp.bytes().await.context("Failed to get bytes")?;
-    let img = image::load_from_memory(&bytes)
-        .context("Failed to load image from URL")?;
+    let img = image::load_from_memory(&bytes).context("Failed to load image from URL")?;
 
     run_inference_and_notify(app, img).await
 }
@@ -91,7 +94,11 @@ async fn run_inference_and_notify(app: &AppHandle, img: image::DynamicImage) -> 
     let config = get_config(state.clone()).map_err(|e| anyhow::anyhow!(e))?;
 
     // Quick check if loaded
-    let is_loaded = state.tagger.lock().map_err(|_| anyhow::anyhow!("Failed to lock tagger"))?.is_some();
+    let is_loaded = state
+        .tagger
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Failed to lock tagger"))?
+        .is_some();
 
     if !is_loaded {
         // Load it now
@@ -108,14 +115,21 @@ async fn run_inference_and_notify(app: &AppHandle, img: image::DynamicImage) -> 
             config.preprocessing.clone(),
         )?;
 
-        *state.tagger.lock().map_err(|_| anyhow::anyhow!("Failed to lock tagger"))? = Some(tagger);
+        *state
+            .tagger
+            .lock()
+            .map_err(|_| anyhow::anyhow!("Failed to lock tagger"))? = Some(tagger);
     }
 
-    let mut tagger_guard = state.tagger.lock().map_err(|_| anyhow::anyhow!("Failed to lock tagger"))?;
-    let tagger = tagger_guard.as_mut().ok_or_else(|| anyhow::anyhow!("Tagger not available"))?;
+    let mut tagger_guard = state
+        .tagger
+        .lock()
+        .map_err(|_| anyhow::anyhow!("Failed to lock tagger"))?;
+    let tagger = tagger_guard
+        .as_mut()
+        .ok_or_else(|| anyhow::anyhow!("Tagger not available"))?;
 
-    let results = tagger
-        .infer(&img, config.threshold)?;
+    let results = tagger.infer(&img, config.threshold)?;
 
     let mut filtered: Vec<String> = results
         .into_iter()
@@ -170,15 +184,14 @@ mod tests {
             file_path.to_string_lossy().to_string(),
         ];
 
-        let result = process_inputs_with_actions(
-            args,
-            |_| async { Ok(()) },
-            |_| async { Ok(()) },
-        )
-        .await;
+        let result =
+            process_inputs_with_actions(args, |_| async { Ok(()) }, |_| async { Ok(()) }).await;
 
         assert!(result.is_ok());
-        assert!(!file_path.exists(), "File should be deleted after processing");
+        assert!(
+            !file_path.exists(),
+            "File should be deleted after processing"
+        );
     }
 
     #[tokio::test]
@@ -199,12 +212,8 @@ mod tests {
             file_path.to_string_lossy().to_string(),
         ];
 
-        let result = process_inputs_with_actions(
-            args,
-            |_| async { Ok(()) },
-            |_| async { Ok(()) },
-        )
-        .await;
+        let result =
+            process_inputs_with_actions(args, |_| async { Ok(()) }, |_| async { Ok(()) }).await;
 
         assert!(result.is_ok());
         assert!(file_path.exists(), "File should NOT be deleted");
