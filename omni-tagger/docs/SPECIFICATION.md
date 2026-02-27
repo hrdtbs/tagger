@@ -122,3 +122,12 @@
   "message": "Error description..."
 }
 ```
+
+### 7.3 Linux Headless Execution
+**重要**: OmniTaggerはTauri v2 (GTK) に依存しているため、CLIモード（`--process-url` や ファイルパス引数）での実行であっても、ディスプレイサーバーへの接続が必要です。
+ディスプレイのない環境（サーバーやCI環境など）で実行する場合は、`xvfb` (X virtual framebuffer) を使用してください。
+
+例:
+```bash
+xvfb-run -a ./omni-tagger <image_path>
+```
