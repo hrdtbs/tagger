@@ -9,76 +9,12 @@ use tauri::{path::BaseDirectory, Manager};
 pub async fn register_context_menu(app: AppHandle, enable: bool) -> Result<(), String> {
     #[cfg(target_os = "windows")]
     {
-        let _ = app; // unused on Windows for now, as we use current_exe directly
-        let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
-        let exe_str = exe_path.to_str().ok_or("Invalid path")?;
-
-        let command_str = format!("\"{}\" \"%1\"", exe_str);
-
-        if enable {
-            Command::new("reg")
-                .args(&[
-                    "add",
-                    "HKCU\\Software\\Classes\\*\\shell\\OmniTagger",
-                    "/ve",
-                    "/d",
-                    "Get Tags",
-                    "/f",
-                ])
-                .output()
-                .map_err(|e| format!("Failed to add registry key: {}", e))?;
-
-            Command::new("reg")
-                .args(&[
-                    "add",
-                    "HKCU\\Software\\Classes\\*\\shell\\OmniTagger\\command",
-                    "/ve",
-                    "/d",
-                    &command_str,
-                    "/f",
-                ])
-                .output()
-                .map_err(|e| format!("Failed to add command key: {}", e))?;
-        } else {
-            Command::new("reg")
-                .args(&[
-                    "delete",
-                    "HKCU\\Software\\Classes\\*\\shell\\OmniTagger",
-                    "/f",
-                ])
-                .output()
-                .map_err(|e| format!("Failed to delete registry key: {}", e))?;
-        }
-        Ok(())
+        let _ = app;
+        register_context_menu_windows(enable)
     }
     #[cfg(target_os = "linux")]
     {
-        // On Linux, we create a .desktop file in ~/.local/share/applications/
-        let data_local_dir = app
-            .path()
-            .data_dir()
-            .map_err(|e: tauri::Error| e.to_string())?;
-        let applications_dir = data_local_dir.join("applications");
-
-        if !applications_dir.exists() {
-            fs::create_dir_all(&applications_dir).map_err(|e| e.to_string())?;
-        }
-
-        let desktop_file_path = applications_dir.join("omni-tagger-context.desktop");
-
-        if enable {
-            let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
-            let exe_str = exe_path.to_str().ok_or("Invalid path")?;
-
-            // Generate content
-            let content = generate_desktop_file_content(exe_str);
-            fs::write(&desktop_file_path, content)
-                .map_err(|e| format!("Failed to write desktop file: {}", e))?;
-        } else if desktop_file_path.exists() {
-            fs::remove_file(&desktop_file_path)
-                .map_err(|e| format!("Failed to remove desktop file: {}", e))?;
-        }
-        Ok(())
+        register_context_menu_linux(app, enable)
     }
     #[cfg(not(any(target_os = "windows", target_os = "linux")))]
     {
@@ -86,6 +22,80 @@ pub async fn register_context_menu(app: AppHandle, enable: bool) -> Result<(), S
         let _ = enable;
         Err("Context menu registration is only supported on Windows and Linux".to_string())
     }
+}
+
+#[cfg(target_os = "windows")]
+fn register_context_menu_windows(enable: bool) -> Result<(), String> {
+    let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
+    let exe_str = exe_path.to_str().ok_or("Invalid path")?;
+
+    let command_str = format!("\"{}\" \"%1\"", exe_str);
+
+    if enable {
+        Command::new("reg")
+            .args(&[
+                "add",
+                "HKCU\\Software\\Classes\\*\\shell\\OmniTagger",
+                "/ve",
+                "/d",
+                "Get Tags",
+                "/f",
+            ])
+            .output()
+            .map_err(|e| format!("Failed to add registry key: {}", e))?;
+
+        Command::new("reg")
+            .args(&[
+                "add",
+                "HKCU\\Software\\Classes\\*\\shell\\OmniTagger\\command",
+                "/ve",
+                "/d",
+                &command_str,
+                "/f",
+            ])
+            .output()
+            .map_err(|e| format!("Failed to add command key: {}", e))?;
+    } else {
+        Command::new("reg")
+            .args(&[
+                "delete",
+                "HKCU\\Software\\Classes\\*\\shell\\OmniTagger",
+                "/f",
+            ])
+            .output()
+            .map_err(|e| format!("Failed to delete registry key: {}", e))?;
+    }
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+fn register_context_menu_linux(app: AppHandle, enable: bool) -> Result<(), String> {
+    // On Linux, we create a .desktop file in ~/.local/share/applications/
+    let data_local_dir = app
+        .path()
+        .data_dir()
+        .map_err(|e: tauri::Error| e.to_string())?;
+    let applications_dir = data_local_dir.join("applications");
+
+    if !applications_dir.exists() {
+        fs::create_dir_all(&applications_dir).map_err(|e| e.to_string())?;
+    }
+
+    let desktop_file_path = applications_dir.join("omni-tagger-context.desktop");
+
+    if enable {
+        let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
+        let exe_str = exe_path.to_str().ok_or("Invalid path")?;
+
+        // Generate content
+        let content = generate_desktop_file_content(exe_str);
+        fs::write(&desktop_file_path, content)
+            .map_err(|e| format!("Failed to write desktop file: {}", e))?;
+    } else if desktop_file_path.exists() {
+        fs::remove_file(&desktop_file_path)
+            .map_err(|e| format!("Failed to remove desktop file: {}", e))?;
+    }
+    Ok(())
 }
 
 #[cfg(target_os = "linux")]
@@ -120,44 +130,96 @@ pub async fn register_native_host(
 
     #[cfg(target_os = "windows")]
     {
-        // 1. Get native_host.exe path
-        // Try to resolve from resources first (Production)
-        let resource_path = app
-            .path()
-            .resolve("native_host.exe", BaseDirectory::Resource)
-            .map_err(|e| format!("Failed to resolve resource path: {}", e))?;
+        register_native_host_windows(app, extension_id, browser_type)
+    }
+    #[cfg(target_os = "linux")]
+    {
+        register_native_host_linux(app, extension_id, browser_type)
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    {
+        let _ = app;
+        let _ = extension_id;
+        let _ = browser_type;
+        Err("Native host registration is only supported on Windows and Linux".to_string())
+    }
+}
 
-        let native_host_path = if resource_path.exists() {
-            resource_path
-        } else {
-            // Fallback: Check alongside main executable (Dev environment)
-            let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
-            let exe_dir = exe_path.parent().ok_or("Invalid path")?;
-            exe_dir.join("native_host.exe")
-        };
+#[cfg(target_os = "windows")]
+fn register_native_host_windows(
+    app: AppHandle,
+    extension_id: String,
+    browser_type: String,
+) -> Result<(), String> {
+    // 1. Get native_host.exe path
+    // Try to resolve from resources first (Production)
+    let resource_path = app
+        .path()
+        .resolve("native_host.exe", BaseDirectory::Resource)
+        .map_err(|e| format!("Failed to resolve resource path: {}", e))?;
 
-        if !native_host_path.exists() {
-            return Err(format!(
-                "native_host.exe not found at {:?}",
-                native_host_path
-            ));
-        }
+    let native_host_path = if resource_path.exists() {
+        resource_path
+    } else {
+        // Fallback: Check alongside main executable (Dev environment)
+        let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
+        let exe_dir = exe_path.parent().ok_or("Invalid path")?;
+        exe_dir.join("native_host.exe")
+    };
 
-        let exe_dir = native_host_path.parent().ok_or("Invalid path")?;
+    if !native_host_path.exists() {
+        return Err(format!(
+            "native_host.exe not found at {:?}",
+            native_host_path
+        ));
+    }
 
-        if browser_type == "firefox" {
-            // Firefox Logic
-            let manifest_content = generate_firefox_manifest_content(
-                native_host_path.to_str().unwrap_or("native_host.exe"),
-                &extension_id,
-            );
+    let exe_dir = native_host_path.parent().ok_or("Invalid path")?;
 
-            // We need a separate manifest file for Firefox because content differs
-            let manifest_path = exe_dir.join("com.omnitagger.host-firefox.json");
-            let file = std::fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
-            serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
+    if browser_type == "firefox" {
+        // Firefox Logic
+        let manifest_content = generate_firefox_manifest_content(
+            native_host_path.to_str().unwrap_or("native_host.exe"),
+            &extension_id,
+        );
 
-            let key = "HKCU\\Software\\Mozilla\\NativeMessagingHosts\\com.omnitagger.host";
+        // We need a separate manifest file for Firefox because content differs
+        let manifest_path = exe_dir.join("com.omnitagger.host-firefox.json");
+        let file = std::fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
+        serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
+
+        let key = "HKCU\\Software\\Mozilla\\NativeMessagingHosts\\com.omnitagger.host";
+        Command::new("reg")
+            .args(&[
+                "add",
+                key,
+                "/ve",
+                "/d",
+                manifest_path.to_str().ok_or("Invalid path")?,
+                "/f",
+            ])
+            .output()
+            .map_err(|e| format!("Failed to register native host for Firefox: {}", e))?;
+    } else {
+        // Chromium Logic
+        let manifest_content = generate_manifest_content(
+            native_host_path.to_str().unwrap_or("native_host.exe"),
+            &extension_id,
+        );
+
+        let manifest_path = exe_dir.join("com.omnitagger.host.json");
+        let file = std::fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
+        serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
+
+        // 3. Add Registry Key
+        // Iterate over Chrome, Edge, and Brave registry paths
+        let registry_keys = vec![
+            "HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\com.omnitagger.host",
+            "HKCU\\Software\\Microsoft\\Edge\\NativeMessagingHosts\\com.omnitagger.host",
+            "HKCU\\Software\\BraveSoftware\\Brave-Browser\\NativeMessagingHosts\\com.omnitagger.host",
+        ];
+
+        for key in registry_keys {
             Command::new("reg")
                 .args(&[
                     "add",
@@ -168,147 +230,113 @@ pub async fn register_native_host(
                     "/f",
                 ])
                 .output()
-                .map_err(|e| format!("Failed to register native host for Firefox: {}", e))?;
-        } else {
-            // Chromium Logic
-            let manifest_content = generate_manifest_content(
-                native_host_path.to_str().unwrap_or("native_host.exe"),
-                &extension_id,
-            );
-
-            let manifest_path = exe_dir.join("com.omnitagger.host.json");
-            let file = std::fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
-            serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
-
-            // 3. Add Registry Key
-            // Iterate over Chrome, Edge, and Brave registry paths
-            let registry_keys = vec![
-                "HKCU\\Software\\Google\\Chrome\\NativeMessagingHosts\\com.omnitagger.host",
-                "HKCU\\Software\\Microsoft\\Edge\\NativeMessagingHosts\\com.omnitagger.host",
-                "HKCU\\Software\\BraveSoftware\\Brave-Browser\\NativeMessagingHosts\\com.omnitagger.host",
-            ];
-
-            for key in registry_keys {
-                Command::new("reg")
-                    .args(&[
-                        "add",
-                        key,
-                        "/ve",
-                        "/d",
-                        manifest_path.to_str().ok_or("Invalid path")?,
-                        "/f",
-                    ])
-                    .output()
-                    .map_err(|e| format!("Failed to register native host for {}: {}", key, e))?;
-            }
+                .map_err(|e| format!("Failed to register native host for {}: {}", key, e))?;
         }
-        Ok(())
     }
-    #[cfg(target_os = "linux")]
-    {
-        // 1. Get native_host path
-        let resource_path = app
-            .path()
-            .resolve("native_host.exe", BaseDirectory::Resource)
-            .map_err(|e| format!("Failed to resolve resource path: {}", e))?;
+    Ok(())
+}
 
-        // In dev, it might be in target/release/native_host (no exe) or target/debug/native_host
-        // But the build script copies it to resources/native_host.exe even on Linux
-        let native_host_path = if resource_path.exists() {
-            resource_path
+#[cfg(target_os = "linux")]
+fn register_native_host_linux(
+    app: AppHandle,
+    extension_id: String,
+    browser_type: String,
+) -> Result<(), String> {
+    // 1. Get native_host path
+    let resource_path = app
+        .path()
+        .resolve("native_host.exe", BaseDirectory::Resource)
+        .map_err(|e| format!("Failed to resolve resource path: {}", e))?;
+
+    // In dev, it might be in target/release/native_host (no exe) or target/debug/native_host
+    // But the build script copies it to resources/native_host.exe even on Linux
+    let native_host_path = if resource_path.exists() {
+        resource_path
+    } else {
+        // Fallback dev path logic similar to Windows but checking for no-extension too
+        let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
+        let exe_dir = exe_path.parent().ok_or("Invalid path")?;
+        let p = exe_dir.join("native_host");
+        if p.exists() {
+            p
         } else {
-            // Fallback dev path logic similar to Windows but checking for no-extension too
-            let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
-            let exe_dir = exe_path.parent().ok_or("Invalid path")?;
-            let p = exe_dir.join("native_host");
-            if p.exists() {
-                p
-            } else {
-                exe_dir.join("native_host.exe")
-            }
-        };
+            exe_dir.join("native_host.exe")
+        }
+    };
 
-        if !native_host_path.exists() {
-            return Err(format!("native_host not found at {:?}", native_host_path));
+    if !native_host_path.exists() {
+        return Err(format!("native_host not found at {:?}", native_host_path));
+    }
+
+    if browser_type == "firefox" {
+        // Firefox Logic
+        let manifest_content = generate_firefox_manifest_content(
+            native_host_path.to_str().ok_or("Invalid path")?,
+            &extension_id,
+        );
+
+        // Use home_dir for ~/.mozilla
+        let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
+        let mozilla_native_hosts_dir = home_dir.join(".mozilla/native-messaging-hosts");
+
+        if !mozilla_native_hosts_dir.exists() {
+            fs::create_dir_all(&mozilla_native_hosts_dir).map_err(|e| e.to_string())?;
         }
 
-        if browser_type == "firefox" {
-            // Firefox Logic
-            let manifest_content = generate_firefox_manifest_content(
-                native_host_path.to_str().ok_or("Invalid path")?,
-                &extension_id,
-            );
+        let manifest_path = mozilla_native_hosts_dir.join("com.omnitagger.host.json");
+        let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
+        serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
+    } else {
+        // Chromium Logic
+        let manifest_content = generate_manifest_content(
+            native_host_path.to_str().ok_or("Invalid path")?,
+            &extension_id,
+        );
 
-            // Use home_dir for ~/.mozilla
-            let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
-            let mozilla_native_hosts_dir = home_dir.join(".mozilla/native-messaging-hosts");
+        // 3. Write to browser config directories
+        let config_dir = app.path().config_dir().map_err(|e| e.to_string())?;
 
-            if !mozilla_native_hosts_dir.exists() {
-                fs::create_dir_all(&mozilla_native_hosts_dir).map_err(|e| e.to_string())?;
+        // Common paths for Chrome, Chromium, Edge
+        let targets = vec![
+            config_dir.join("google-chrome/NativeMessagingHosts"),
+            config_dir.join("chromium/NativeMessagingHosts"),
+            config_dir.join("microsoft-edge/NativeMessagingHosts"),
+            config_dir.join("BraveSoftware/Brave-Browser/NativeMessagingHosts"),
+        ];
+
+        let mut success_count = 0;
+
+        for dir in targets {
+            // Only write if the parent browser directory exists (to avoid polluting unrelated configs)
+            if let Some(parent) = dir.parent() {
+                if parent.exists() {
+                    if !dir.exists() {
+                        let _ = fs::create_dir_all(&dir);
+                    }
+                    let manifest_path = dir.join("com.omnitagger.host.json");
+                    let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
+                    serde_json::to_writer_pretty(file, &manifest_content)
+                        .map_err(|e| e.to_string())?;
+                    success_count += 1;
+                }
             }
+        }
 
-            let manifest_path = mozilla_native_hosts_dir.join("com.omnitagger.host.json");
+        if success_count == 0 {
+            // Maybe no browser installed or paths differ.
+            // We can force create google-chrome path?
+            // Let's create the google-chrome one by default just in case.
+            let default_dir = config_dir.join("google-chrome/NativeMessagingHosts");
+            if !default_dir.exists() {
+                let _ = fs::create_dir_all(&default_dir);
+            }
+            let manifest_path = default_dir.join("com.omnitagger.host.json");
             let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
             serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
-        } else {
-            // Chromium Logic
-            let manifest_content = generate_manifest_content(
-                native_host_path.to_str().ok_or("Invalid path")?,
-                &extension_id,
-            );
-
-            // 3. Write to browser config directories
-            let config_dir = app.path().config_dir().map_err(|e| e.to_string())?;
-
-            // Common paths for Chrome, Chromium, Edge
-            let targets = vec![
-                config_dir.join("google-chrome/NativeMessagingHosts"),
-                config_dir.join("chromium/NativeMessagingHosts"),
-                config_dir.join("microsoft-edge/NativeMessagingHosts"),
-                config_dir.join("BraveSoftware/Brave-Browser/NativeMessagingHosts"),
-            ];
-
-            let mut success_count = 0;
-
-            for dir in targets {
-                // Only write if the parent browser directory exists (to avoid polluting unrelated configs)
-                if let Some(parent) = dir.parent() {
-                    if parent.exists() {
-                        if !dir.exists() {
-                            let _ = fs::create_dir_all(&dir);
-                        }
-                        let manifest_path = dir.join("com.omnitagger.host.json");
-                        let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
-                        serde_json::to_writer_pretty(file, &manifest_content)
-                            .map_err(|e| e.to_string())?;
-                        success_count += 1;
-                    }
-                }
-            }
-
-            if success_count == 0 {
-                // Maybe no browser installed or paths differ.
-                // We can force create google-chrome path?
-                // Let's create the google-chrome one by default just in case.
-                let default_dir = config_dir.join("google-chrome/NativeMessagingHosts");
-                if !default_dir.exists() {
-                    let _ = fs::create_dir_all(&default_dir);
-                }
-                let manifest_path = default_dir.join("com.omnitagger.host.json");
-                let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
-                serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
-            }
         }
+    }
 
-        Ok(())
-    }
-    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
-    {
-        let _ = app;
-        let _ = extension_id;
-        let _ = browser_type;
-        Err("Native host registration is only supported on Windows and Linux".to_string())
-    }
+    Ok(())
 }
 
 #[tauri::command]
