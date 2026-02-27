@@ -16,7 +16,12 @@ test.beforeEach(async ({ page }) => {
           tags_path: 'models/tags.csv',
           threshold: 0.5,
           use_underscore: true,
-          exclusion_list: ['nsfw', 'monochrome']
+          exclusion_list: ['nsfw', 'monochrome'],
+          preprocessing: {
+            input_size: 448,
+            format: 'bgr',
+            normalize: false
+          }
         };
       }
       if (cmd === 'check_model_exists') {
