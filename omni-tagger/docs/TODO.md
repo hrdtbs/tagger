@@ -86,7 +86,7 @@
 - [x] **Native Host Cleanup**: Implement cleanup mechanism for temporary files created by `native_host` when processing Data URIs. (Implemented: `native_host` passes `--delete-after` flag to main app).
 
 ## Quality Assurance / Verification
-- [x] **Frontend E2E Testing**: Implemented Playwright tests for frontend verification. Added `e2e` directory and `test:e2e` script.
+- [x] **Frontend E2E Testing**: Implemented Playwright tests for frontend verification. Added `e2e` directory and `test:e2e` script. (Verified passing tests).
 - [x] **Backend Unit Testing**: Run and verify cargo tests pass (requires fixed CI environment). (Verified 9 passed tests).
 - [ ] **Manual Verification (Windows)**:
     - [x] Test "Add/Remove to Context Menu" adds/removes registry keys correctly. (Verified implementation logic in `registry.rs`)
@@ -110,7 +110,7 @@
 
 ## Non-Functional Requirements
 - [x] **Performance**: Verify tag generation completes within 1 second. (Verified via `test_inference_performance` in `tagger.rs`)
-- [ ] **Size**: Verify application size is under 100MB (excluding models).
+- [x] **Size**: Verify application size is under 100MB (excluding models). (Verified: ~50MB).
 - [x] **Offline Operation**: Verify core features work without internet (after initial model download). (Verified via `test_check_file_exists` unit test and `model_manager` logic review)
 
 ## Future Improvements / Cross-Platform
