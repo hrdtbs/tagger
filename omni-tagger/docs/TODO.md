@@ -84,6 +84,7 @@
 
 ## Technical Debt
 - [x] **Native Host Cleanup**: Implement cleanup mechanism for temporary files created by `native_host` when processing Data URIs. (Implemented: `native_host` passes `--delete-after` flag to main app).
+- [ ] **Async IO Refactoring**: Refactor `model_manager.rs` to use non-blocking IO (`tokio::fs` or `spawn_blocking`) for file operations to avoid blocking the async runtime.
 
 ## Quality Assurance / Verification
 - [x] **Frontend E2E Testing**: Implemented Playwright tests for frontend verification. Added `e2e` directory and `test:e2e` script. (Verified passing tests).
@@ -104,6 +105,7 @@
     - [x] Test Browser Extension communication. (Verified via code review of `native_host.rs`)
     - [x] Verify `native_host.exe` (with .exe extension) works correctly as a Native Messaging Host on Linux (Verified build script and registry logic).
     - [x] Verify Firefox Manifest Generation: Ensure manifest uses `allowed_extensions` with the correct ID. (Verified implementation logic in `registry.rs`).
+    - [ ] **Headless Execution**: Verify CLI execution with `xvfb-run` works on a headless Linux environment.
 
 ## Model Compatibility
 - [x] **Tag Consistency**: Verify that `selected_tags.csv` from SwinV2 (currently used for all models) is compatible with ConvNext/ConvNextV2 models. (Verified: WD14 V2 models share the same tag set).
