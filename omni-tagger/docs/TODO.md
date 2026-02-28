@@ -120,10 +120,10 @@
     - [x] Implement logic in extension to fetch image data for Blob/Private URLs and send as Data URI automatically.
 - [ ] **macOS Integration**:
     - [ ] Implement Context Menu registration for macOS (Finder extensions or Automator services).
-    - [ ] Implement Native Messaging Host registration for macOS.
+    - [x] Implement Native Messaging Host registration for macOS.
 - [x] **Firefox Support**:
     - [x] Verify manifest compatibility or create separate manifest for Firefox. (Implemented `generate_firefox_manifest_content` and registration logic)
-- [ ] **Offline Installer**:
-    - [ ] Create an installer variant that bundles the default models to avoid download requirement.
+- [x] **Offline Installer**:
+    - [x] Create an installer variant that bundles the default models to avoid download requirement.
 - [x] **Model Flexibility**:
     - [x] Implement model-specific preprocessing configuration (e.g. input size, normalization) to support a wider range of ONNX models.
