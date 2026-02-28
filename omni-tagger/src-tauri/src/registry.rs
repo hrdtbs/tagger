@@ -302,12 +302,101 @@ pub async fn register_native_host(
 
         Ok(())
     }
-    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    #[cfg(target_os = "macos")]
+    {
+        // 1. Get native_host path
+        let resource_path = app
+            .path()
+            .resolve("native_host", BaseDirectory::Resource)
+            .map_err(|e| format!("Failed to resolve resource path: {}", e))?;
+
+        let native_host_path = if resource_path.exists() {
+            resource_path
+        } else {
+            let exe_path = std::env::current_exe().map_err(|e| e.to_string())?;
+            let exe_dir = exe_path.parent().ok_or("Invalid path")?;
+            let p = exe_dir.join("native_host");
+            if p.exists() {
+                p
+            } else {
+                exe_dir.join("native_host.exe")
+            }
+        };
+
+        if !native_host_path.exists() {
+            return Err(format!("native_host not found at {:?}", native_host_path));
+        }
+
+        let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
+
+        if browser_type == "firefox" {
+            // Firefox Logic
+            let manifest_content = generate_firefox_manifest_content(
+                native_host_path.to_str().ok_or("Invalid path")?,
+                &extension_id,
+            );
+
+            let mozilla_native_hosts_dir = home_dir.join("Library/Application Support/Mozilla/NativeMessagingHosts");
+
+            if !mozilla_native_hosts_dir.exists() {
+                fs::create_dir_all(&mozilla_native_hosts_dir).map_err(|e| e.to_string())?;
+            }
+
+            let manifest_path = mozilla_native_hosts_dir.join("com.omnitagger.host.json");
+            let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
+            serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
+        } else {
+            // Chromium Logic
+            let manifest_content = generate_manifest_content(
+                native_host_path.to_str().ok_or("Invalid path")?,
+                &extension_id,
+            );
+
+            // 3. Write to browser config directories
+            let targets = vec![
+                home_dir.join("Library/Application Support/Google/Chrome/NativeMessagingHosts"),
+                home_dir.join("Library/Application Support/Chromium/NativeMessagingHosts"),
+                home_dir.join("Library/Application Support/Microsoft Edge/NativeMessagingHosts"),
+                home_dir.join("Library/Application Support/BraveSoftware/Brave-Browser/NativeMessagingHosts"),
+            ];
+
+            let mut success_count = 0;
+
+            for dir in targets {
+                if let Some(parent) = dir.parent() {
+                    if parent.exists() {
+                        if !dir.exists() {
+                            let _ = fs::create_dir_all(&dir);
+                        }
+                        let manifest_path = dir.join("com.omnitagger.host.json");
+                        let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
+                        serde_json::to_writer_pretty(file, &manifest_content)
+                            .map_err(|e| e.to_string())?;
+                        success_count += 1;
+                    }
+                }
+            }
+
+            if success_count == 0 {
+                // Default to Chrome
+                let default_dir = home_dir.join("Library/Application Support/Google/Chrome/NativeMessagingHosts");
+                if !default_dir.exists() {
+                    let _ = fs::create_dir_all(&default_dir);
+                }
+                let manifest_path = default_dir.join("com.omnitagger.host.json");
+                let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
+                serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
+            }
+        }
+
+        Ok(())
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
     {
         let _ = app;
         let _ = extension_id;
         let _ = browser_type;
-        Err("Native host registration is only supported on Windows and Linux".to_string())
+        Err("Native host registration is only supported on Windows, Linux, and macOS".to_string())
     }
 }
 
@@ -370,11 +459,40 @@ pub async fn unregister_native_host(app: AppHandle, browser: Option<String>) -> 
         }
         Ok(())
     }
-    #[cfg(not(any(target_os = "windows", target_os = "linux")))]
+    #[cfg(target_os = "macos")]
+    {
+        let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
+
+        if browser_type == "firefox" {
+            let manifest_path =
+                home_dir.join("Library/Application Support/Mozilla/NativeMessagingHosts/com.omnitagger.host.json");
+            if manifest_path.exists() {
+                fs::remove_file(&manifest_path)
+                    .map_err(|e| format!("Failed to remove manifest: {}", e))?;
+            }
+        } else {
+            let targets = vec![
+                home_dir.join("Library/Application Support/Google/Chrome/NativeMessagingHosts/com.omnitagger.host.json"),
+                home_dir.join("Library/Application Support/Chromium/NativeMessagingHosts/com.omnitagger.host.json"),
+                home_dir.join("Library/Application Support/Microsoft Edge/NativeMessagingHosts/com.omnitagger.host.json"),
+                home_dir.join(
+                    "Library/Application Support/BraveSoftware/Brave-Browser/NativeMessagingHosts/com.omnitagger.host.json",
+                ),
+            ];
+
+            for path in targets {
+                if path.exists() {
+                    let _ = fs::remove_file(&path);
+                }
+            }
+        }
+        Ok(())
+    }
+    #[cfg(not(any(target_os = "windows", target_os = "linux", target_os = "macos")))]
     {
         let _ = app;
         let _ = browser_type;
-        Err("Native host unregistration is only supported on Windows and Linux".to_string())
+        Err("Native host unregistration is only supported on Windows, Linux, and macOS".to_string())
     }
 }
 

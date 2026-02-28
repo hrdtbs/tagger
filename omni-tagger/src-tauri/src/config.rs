@@ -79,6 +79,13 @@ pub fn resolve_model_path(app: &AppHandle, path_str: &str) -> std::path::PathBuf
     if path.is_absolute() {
         path.to_path_buf()
     } else {
+        if cfg!(feature = "offline_installer") {
+            if let Ok(resource_path) = app.path().resolve(path_str, BaseDirectory::Resource) {
+                if resource_path.exists() {
+                    return resource_path;
+                }
+            }
+        }
         match app.path().resolve(path_str, BaseDirectory::AppLocalData) {
             Ok(p) => p,
             Err(_) => path.to_path_buf(), // Fallback
