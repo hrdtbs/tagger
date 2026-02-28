@@ -44,7 +44,7 @@
 ## 4. システムアーキテクチャ・データフロー
 1. **Trigger**:
     *   **Local**: Context Menu (Registry/.desktop) -> 実行引数としてファイルパスを受け取る。CLI経由でのURL処理もサポート。
-    *   **Browser**: Chrome Extension Context Menu -> Native Messaging経由でJSONメッセージを受信。
+    *   **Browser**: Browser Extension Context Menu -> Native Messaging経由でJSONメッセージを受信。
 2. **Image Loading**: ファイルパスまたはURL/Base64から画像データをメモリに展開。
 3. **Preprocessing**: 画像を 448 x 448 ピクセルにリサイズし、BGR変換を実行 (0-255範囲) (WD14 SwinV2 標準)。
 4. **Inference**: ONNXモデルに入力し、各タグのスコア（0.0 ~ 1.0）を算出。
@@ -72,7 +72,7 @@
 ### 7.1 Native Messaging Protocol
 ブラウザ拡張機能 (`browser-extension`) とネイティブホスト (`native_host.exe` / `native_host`) 間の通信プロトコル（JSON over Stdin/Stdout）。
 **注意**: 現在の実装では、Linux環境においてもネイティブホストのバイナリ名は `native_host.exe` となっています（ビルドプロセスの一貫性のため）。マニフェストファイルはこの名前を参照します。
-また、FirefoxのNative Messaging Hostマニフェストには `allowed_extensions` フィールドが必須であり、特定の拡張機能IDを指定する必要があります（Chrome等の `allowed_origins` とは異なります）。
+また、FirefoxのNative Messaging Hostマニフェストには `allowed_extensions` フィールドが必須であり、特定の拡張機能IDを指定する必要があります（Chrome等の `allowed_origins` とは異なります）。さらに、開発中の拡張機能をFirefoxで利用する場合、`manifest.json`に`browser_specific_settings.gecko.id`を明示的に指定しないと、起動のたびにランダムなIDが割り当てられ、Native Messaging Hostの登録とIDが不一致となり通信が失敗するという根本的な問題があります。
 
 ### 7.2 Registry & Configuration Paths
 
@@ -90,6 +90,8 @@
 *   Native Host Manifest (Edge): `~/.config/microsoft-edge/NativeMessagingHosts/com.omnitagger.host.json`
 *   Native Host Manifest (Brave): `~/.config/BraveSoftware/Brave-Browser/NativeMessagingHosts/com.omnitagger.host.json`
 *   Native Host Manifest (Firefox): `~/.mozilla/native-messaging-hosts/com.omnitagger.host.json`
+
+**注意**: Linux環境におけるSnapやFlatpakでインストールされたサンドボックス化されたブラウザ（UbuntuのデフォルトFirefoxなど）では、上記の標準的な設定パス（`~/.mozilla/...`など）にあるNative Messaging Hostマニフェストを読み込むことができず、連携が根本的に破綻します。これに対応するためには、SnapやFlatpak固有のディレクトリ（例: `~/snap/firefox/current/.mozilla/native-messaging-hosts/` や Flatpakのパーミッション設定）へのマニフェスト配置を考慮する必要があります。
 
 **注意**: `url` フィールドで画像URLを送信する場合、バックエンド側で再ダウンロードを行うため、Cookie認証が必要な画像や `blob:` URL は処理できません。その場合は `data` フィールド（Base64）を使用してください。
 
