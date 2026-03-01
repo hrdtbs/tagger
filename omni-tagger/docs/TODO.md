@@ -53,7 +53,7 @@
     - [x] Implement `background.js` (Service Worker) to register context menu ("Get Tags").
     - [x] Implement message passing to native host (`chrome.runtime.sendNativeMessage`).
     - [x] Add icons and other resources.
-    - [ ] **Firefox Compatibility**: Add `browser_specific_settings.gecko.id` to `manifest.json` to prevent Firefox from generating random extension IDs on every load, which breaks Native Messaging Host registration.
+    - [x] **Firefox Compatibility**: Add `browser_specific_settings.gecko.id` to `manifest.json` to prevent Firefox from generating random extension IDs on every load, which breaks Native Messaging Host registration.
 
 ## Frontend (App UI)
 - [x] **Settings**:
@@ -83,7 +83,7 @@
 ## Known Issues & Bugs
 - [x] **Backend Model Download Logic Flaw**: The `check_and_download_models` function in `src-tauri/src/model_manager.rs` uses a hardcoded URL (WD14 SwinV2). If a user selects a different model (e.g. ConvNext) in settings but the file is missing on startup, the application will incorrectly download the SwinV2 model to the configured path. (Fixed: Implemented filename-based URL resolution).
 - [x] **Private/Blob URL Handling**: Implemented logic in browser extension to fetch image data (handling auth/blob URLs) and resize it before sending to backend as Data URI.
-- [ ] **Firefox Extension ID Rotation**: Unsigned extensions loaded temporarily in Firefox are assigned a random ID on every run. This causes the Native Messaging manifest's `allowed_extensions` to mismatch with the actual runtime ID, making communication fail unless a static ID is defined in `manifest.json` (`browser_specific_settings.gecko.id`).
+- [x] **Firefox Extension ID Rotation**: Unsigned extensions loaded temporarily in Firefox are assigned a random ID on every run. This causes the Native Messaging manifest's `allowed_extensions` to mismatch with the actual runtime ID, making communication fail unless a static ID is defined in `manifest.json` (`browser_specific_settings.gecko.id`).
 - [ ] **Linux Sandboxed Browsers (Snap/Flatpak)**: Standard Native Messaging manifest paths (`~/.mozilla`, `~/.config/chromium`) are inaccessible or ignored by Snap/Flatpak packaged browsers due to sandboxing, rendering the extension unable to communicate with the Native Host.
 
 ## Technical Debt
