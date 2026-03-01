@@ -42,7 +42,7 @@
 - [x] **Native Host Support**:
     - [x] Implement `native_host` build and bundling for Linux.
     - [x] Implement `register_native_host` logic for Linux (Manifest in `~/.config/...`).
-    - [ ] **Snap/Flatpak Support**: Implement Native Messaging Host manifest registration for sandboxed browsers (Snap/Flatpak), as standard `~/.mozilla` and `~/.config` paths are isolated and not read.
+    - [x] **Snap/Flatpak Support**: Implement Native Messaging Host manifest registration for sandboxed browsers (Snap/Flatpak), as standard `~/.mozilla` and `~/.config` paths are isolated and not read. (Implemented in registry.rs)
 - [x] **Context Menu Support**:
     - [x] Implement context menu registration for Linux (.desktop actions in `~/.local/share/applications`).
 
@@ -83,12 +83,12 @@
 ## Known Issues & Bugs
 - [x] **Backend Model Download Logic Flaw**: The `check_and_download_models` function in `src-tauri/src/model_manager.rs` uses a hardcoded URL (WD14 SwinV2). If a user selects a different model (e.g. ConvNext) in settings but the file is missing on startup, the application will incorrectly download the SwinV2 model to the configured path. (Fixed: Implemented filename-based URL resolution).
 - [x] **Private/Blob URL Handling**: Implemented logic in browser extension to fetch image data (handling auth/blob URLs) and resize it before sending to backend as Data URI.
-- [x] **Firefox Extension ID Rotation**: Unsigned extensions loaded temporarily in Firefox are assigned a random ID on every run. This causes the Native Messaging manifest's `allowed_extensions` to mismatch with the actual runtime ID, making communication fail unless a static ID is defined in `manifest.json` (`browser_specific_settings.gecko.id`).
-- [ ] **Linux Sandboxed Browsers (Snap/Flatpak)**: Standard Native Messaging manifest paths (`~/.mozilla`, `~/.config/chromium`) are inaccessible or ignored by Snap/Flatpak packaged browsers due to sandboxing, rendering the extension unable to communicate with the Native Host.
+- [x] **Firefox Extension ID Rotation**: Unsigned extensions loaded temporarily in Firefox are assigned a random ID on every run. This causes the Native Messaging manifest's `allowed_extensions` to mismatch with the actual runtime ID, making communication fail unless a static ID is defined in `manifest.json` (`browser_specific_settings.gecko.id`). (Fixed)
+- [x] **Linux Sandboxed Browsers (Snap/Flatpak)**: Standard Native Messaging manifest paths (`~/.mozilla`, `~/.config/chromium`) are inaccessible or ignored by Snap/Flatpak packaged browsers due to sandboxing, rendering the extension unable to communicate with the Native Host. (Fixed via Snap/Flatpak paths in registry.rs)
 
 ## Technical Debt
 - [x] **Native Host Cleanup**: Implement cleanup mechanism for temporary files created by `native_host` when processing Data URIs. (Implemented: `native_host` passes `--delete-after` flag to main app).
-- [ ] **Async IO Refactoring**: Refactor `model_manager.rs` to use non-blocking IO (`tokio::fs` or `spawn_blocking`) for file operations to avoid blocking the async runtime.
+- [x] **Async IO Refactoring**: Refactor `model_manager.rs` to use non-blocking IO (`tokio::fs` or `spawn_blocking`) for file operations to avoid blocking the async runtime. (Refactored model_manager.rs to use tokio::fs)
 
 ## Quality Assurance / Verification
 - [x] **Frontend E2E Testing**: Implemented Playwright tests for frontend verification. Added `e2e` directory and `test:e2e` script. (Verified passing tests).

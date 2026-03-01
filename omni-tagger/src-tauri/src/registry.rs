@@ -243,13 +243,27 @@ pub async fn register_native_host(
             let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
             let mozilla_native_hosts_dir = home_dir.join(".mozilla/native-messaging-hosts");
 
-            if !mozilla_native_hosts_dir.exists() {
-                fs::create_dir_all(&mozilla_native_hosts_dir).map_err(|e| e.to_string())?;
-            }
+            let mut targets = vec![mozilla_native_hosts_dir.clone()];
 
-            let manifest_path = mozilla_native_hosts_dir.join("com.omnitagger.host.json");
-            let file = fs::File::create(&manifest_path).map_err(|e| e.to_string())?;
-            serde_json::to_writer_pretty(file, &manifest_content).map_err(|e| e.to_string())?;
+            // Flatpak
+            targets.push(
+                home_dir.join(".var/app/org.mozilla.firefox/.mozilla/native-messaging-hosts"),
+            );
+
+            // Snap
+            targets.push(home_dir.join("snap/firefox/common/.mozilla/native-messaging-hosts"));
+
+            for target_dir in targets {
+                if !target_dir.exists() {
+                    let _ = fs::create_dir_all(&target_dir);
+                }
+                let manifest_path = target_dir.join("com.omnitagger.host.json");
+                let file = match fs::File::create(&manifest_path) {
+                    Ok(f) => f,
+                    Err(_) => continue,
+                };
+                let _ = serde_json::to_writer_pretty(file, &manifest_content);
+            }
         } else {
             // Chromium Logic
             let manifest_content = generate_manifest_content(
@@ -261,12 +275,35 @@ pub async fn register_native_host(
             let config_dir = app.path().config_dir().map_err(|e| e.to_string())?;
 
             // Common paths for Chrome, Chromium, Edge
-            let targets = vec![
+            let mut targets = vec![
                 config_dir.join("google-chrome/NativeMessagingHosts"),
                 config_dir.join("chromium/NativeMessagingHosts"),
                 config_dir.join("microsoft-edge/NativeMessagingHosts"),
                 config_dir.join("BraveSoftware/Brave-Browser/NativeMessagingHosts"),
             ];
+
+            // Flatpak paths
+            let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
+            targets.push(
+                home_dir
+                    .join(".var/app/com.google.Chrome/config/google-chrome/NativeMessagingHosts"),
+            );
+            targets.push(
+                home_dir
+                    .join(".var/app/org.chromium.Chromium/config/chromium/NativeMessagingHosts"),
+            );
+            targets
+                .push(home_dir.join(
+                    ".var/app/com.microsoft.Edge/config/microsoft-edge/NativeMessagingHosts",
+                ));
+            targets.push(home_dir.join(".var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser/NativeMessagingHosts"));
+
+            // Snap paths
+            targets
+                .push(home_dir.join("snap/chromium/current/.config/chromium/NativeMessagingHosts"));
+            targets.push(home_dir.join(
+                "snap/brave/current/.config/BraveSoftware/Brave-Browser/NativeMessagingHosts",
+            ));
 
             let mut success_count = 0;
 
@@ -336,7 +373,8 @@ pub async fn register_native_host(
                 &extension_id,
             );
 
-            let mozilla_native_hosts_dir = home_dir.join("Library/Application Support/Mozilla/NativeMessagingHosts");
+            let mozilla_native_hosts_dir =
+                home_dir.join("Library/Application Support/Mozilla/NativeMessagingHosts");
 
             if !mozilla_native_hosts_dir.exists() {
                 fs::create_dir_all(&mozilla_native_hosts_dir).map_err(|e| e.to_string())?;
@@ -357,7 +395,9 @@ pub async fn register_native_host(
                 home_dir.join("Library/Application Support/Google/Chrome/NativeMessagingHosts"),
                 home_dir.join("Library/Application Support/Chromium/NativeMessagingHosts"),
                 home_dir.join("Library/Application Support/Microsoft Edge/NativeMessagingHosts"),
-                home_dir.join("Library/Application Support/BraveSoftware/Brave-Browser/NativeMessagingHosts"),
+                home_dir.join(
+                    "Library/Application Support/BraveSoftware/Brave-Browser/NativeMessagingHosts",
+                ),
             ];
 
             let mut success_count = 0;
@@ -379,7 +419,8 @@ pub async fn register_native_host(
 
             if success_count == 0 {
                 // Default to Chrome
-                let default_dir = home_dir.join("Library/Application Support/Google/Chrome/NativeMessagingHosts");
+                let default_dir =
+                    home_dir.join("Library/Application Support/Google/Chrome/NativeMessagingHosts");
                 if !default_dir.exists() {
                     let _ = fs::create_dir_all(&default_dir);
                 }
@@ -432,21 +473,35 @@ pub async fn unregister_native_host(app: AppHandle, browser: Option<String>) -> 
     {
         if browser_type == "firefox" {
             let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
-            let manifest_path =
-                home_dir.join(".mozilla/native-messaging-hosts/com.omnitagger.host.json");
-            if manifest_path.exists() {
-                fs::remove_file(&manifest_path)
-                    .map_err(|e| format!("Failed to remove manifest: {}", e))?;
+            let targets = vec![
+                home_dir.join(".mozilla/native-messaging-hosts/com.omnitagger.host.json"),
+                home_dir.join(".var/app/org.mozilla.firefox/.mozilla/native-messaging-hosts/com.omnitagger.host.json"),
+                home_dir.join("snap/firefox/common/.mozilla/native-messaging-hosts/com.omnitagger.host.json"),
+            ];
+            for path in targets {
+                if path.exists() {
+                    let _ = fs::remove_file(&path);
+                }
             }
         } else {
             let config_dir = app.path().config_dir().map_err(|e| e.to_string())?;
+            let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
+
             let targets = vec![
                 config_dir.join("google-chrome/NativeMessagingHosts/com.omnitagger.host.json"),
                 config_dir.join("chromium/NativeMessagingHosts/com.omnitagger.host.json"),
                 config_dir.join("microsoft-edge/NativeMessagingHosts/com.omnitagger.host.json"),
-                config_dir.join(
-                    "BraveSoftware/Brave-Browser/NativeMessagingHosts/com.omnitagger.host.json",
-                ),
+                config_dir.join("BraveSoftware/Brave-Browser/NativeMessagingHosts/com.omnitagger.host.json"),
+
+                // Flatpak
+                home_dir.join(".var/app/com.google.Chrome/config/google-chrome/NativeMessagingHosts/com.omnitagger.host.json"),
+                home_dir.join(".var/app/org.chromium.Chromium/config/chromium/NativeMessagingHosts/com.omnitagger.host.json"),
+                home_dir.join(".var/app/com.microsoft.Edge/config/microsoft-edge/NativeMessagingHosts/com.omnitagger.host.json"),
+                home_dir.join(".var/app/com.brave.Browser/config/BraveSoftware/Brave-Browser/NativeMessagingHosts/com.omnitagger.host.json"),
+
+                // Snap
+                home_dir.join("snap/chromium/current/.config/chromium/NativeMessagingHosts/com.omnitagger.host.json"),
+                home_dir.join("snap/brave/current/.config/BraveSoftware/Brave-Browser/NativeMessagingHosts/com.omnitagger.host.json"),
             ];
 
             for path in targets {
@@ -464,8 +519,9 @@ pub async fn unregister_native_host(app: AppHandle, browser: Option<String>) -> 
         let home_dir = app.path().home_dir().map_err(|e| e.to_string())?;
 
         if browser_type == "firefox" {
-            let manifest_path =
-                home_dir.join("Library/Application Support/Mozilla/NativeMessagingHosts/com.omnitagger.host.json");
+            let manifest_path = home_dir.join(
+                "Library/Application Support/Mozilla/NativeMessagingHosts/com.omnitagger.host.json",
+            );
             if manifest_path.exists() {
                 fs::remove_file(&manifest_path)
                     .map_err(|e| format!("Failed to remove manifest: {}", e))?;
