@@ -53,7 +53,7 @@
     - [x] Implement `background.js` (Service Worker) to register context menu ("Get Tags").
     - [x] Implement message passing to native host (`chrome.runtime.sendNativeMessage`).
     - [x] Add icons and other resources.
-    - [x] **Firefox Compatibility**: Add `browser_specific_settings.gecko.id` to `manifest.json` to prevent Firefox from generating random extension IDs on every load, which breaks Native Messaging Host registration. (Added gecko id extension@omnitagger)
+    - [x] **Firefox Compatibility**: Add `browser_specific_settings.gecko.id` to `manifest.json` to prevent Firefox from generating random extension IDs on every load, which breaks Native Messaging Host registration.
 
 ## Frontend (App UI)
 - [x] **Settings**:

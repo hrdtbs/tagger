@@ -16,6 +16,12 @@
   "action": {
     "default_title": "OmniTagger"
   },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "extension@omnitagger",
+      "strict_min_version": "109.0"
+    }
+  },
   "icons": {
     "16": "icons/icon16.png",
     "48": "icons/icon48.png",
