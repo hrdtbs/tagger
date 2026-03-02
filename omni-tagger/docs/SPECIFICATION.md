@@ -5,10 +5,11 @@
 
 ## 2. 機能要件
 
-### 2.1 ローカルファイル連携 (Windows / Linux)
+### 2.1 ローカルファイル連携 (Windows / Linux / macOS)
  * **コンテキストメニュー**:
    * **Windows**: エクスプローラーで画像ファイル（.png, .jpg, .webp等）を右クリックし、「Get Tags」を選択することで発火。
    * **Linux**: デスクトップ環境（Nautilus, Dolphin等）で「Get Tags」アクションを選択。
+   * **macOS**: 現在未対応（Finder拡張またはAutomatorサービスによる実装を予定）。
  * **バックグラウンド処理**: アプリが起動していない場合でも自動的に起動し、タグ生成後にクリップボードへコピーして終了（または常駐）。
    * **Headless (CLI)**: コマンドライン引数付きで起動した場合は、処理完了後に自動終了。
      * `omni-tagger <file_path>`: 指定された画像ファイルを処理。
@@ -72,6 +73,7 @@
 ### 7.1 Native Messaging Protocol
 ブラウザ拡張機能 (`browser-extension`) とネイティブホスト (`native_host.exe` / `native_host`) 間の通信プロトコル（JSON over Stdin/Stdout）。
 **注意**: 現在の実装では、Linux環境においてもネイティブホストのバイナリ名は `native_host.exe` となっています（ビルドプロセスの一貫性のため）。マニフェストファイルはこの名前を参照します。
+また、macOS環境においてもネイティブホストのバイナリ名はビルドスクリプトによって `native_host.exe` として出力されますが、現在のバックエンド実装（`registry.rs`）では拡張子なしの `native_host` を参照してマニフェストに登録してしまう根本的な不具合（破綻）が存在します。
 また、FirefoxのNative Messaging Hostマニフェストには `allowed_extensions` フィールドが必須であり、特定の拡張機能IDを指定する必要があります（Chrome等の `allowed_origins` とは異なります）。さらに、開発中の拡張機能をFirefoxで利用する場合、`manifest.json`に`browser_specific_settings.gecko.id`を明示的に指定しないと、起動のたびにランダムなIDが割り当てられ、Native Messaging Hostの登録とIDが不一致となり通信が失敗するという根本的な問題があります。
 
 ### 7.2 Registry & Configuration Paths
@@ -90,6 +92,14 @@
 *   Native Host Manifest (Edge): `~/.config/microsoft-edge/NativeMessagingHosts/com.omnitagger.host.json`
 *   Native Host Manifest (Brave): `~/.config/BraveSoftware/Brave-Browser/NativeMessagingHosts/com.omnitagger.host.json`
 *   Native Host Manifest (Firefox): `~/.mozilla/native-messaging-hosts/com.omnitagger.host.json`
+
+**macOS Configuration:**
+*   Context Menu: 未対応
+*   Native Host Manifest (Chrome): `~/Library/Application Support/Google/Chrome/NativeMessagingHosts/com.omnitagger.host.json`
+*   Native Host Manifest (Chromium): `~/Library/Application Support/Chromium/NativeMessagingHosts/com.omnitagger.host.json`
+*   Native Host Manifest (Edge): `~/Library/Application Support/Microsoft Edge/NativeMessagingHosts/com.omnitagger.host.json`
+*   Native Host Manifest (Brave): `~/Library/Application Support/BraveSoftware/Brave-Browser/NativeMessagingHosts/com.omnitagger.host.json`
+*   Native Host Manifest (Firefox): `~/Library/Application Support/Mozilla/NativeMessagingHosts/com.omnitagger.host.json`
 
 **注意**: Linux環境におけるSnapやFlatpakでインストールされたサンドボックス化されたブラウザ（UbuntuのデフォルトFirefoxなど）では、上記の標準的な設定パス（`~/.mozilla/...`など）にあるNative Messaging Hostマニフェストを読み込むことができず、連携が根本的に破綻します。これに対応するためには、SnapやFlatpak固有のディレクトリ（例: `~/snap/firefox/current/.mozilla/native-messaging-hosts/` や Flatpakのパーミッション設定）へのマニフェスト配置を考慮する必要があります。
 

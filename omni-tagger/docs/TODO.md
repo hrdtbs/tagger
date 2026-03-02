@@ -81,6 +81,7 @@
     - [x] GitHub Actions for building Windows/macOS/Linux binaries.
 
 ## Known Issues & Bugs
+- [ ] **macOS Native Host Registration Bug**: `registry.rs` resolves the Native Messaging Host binary as `native_host` (without extension) on macOS. However, the build script (`scripts/build-native-host.mjs`) packages the binary as `native_host.exe` on all platforms. This causes the generated manifest to point to a non-existent path, fundamentally breaking browser extension integration on macOS.
 - [x] **Backend Model Download Logic Flaw**: The `check_and_download_models` function in `src-tauri/src/model_manager.rs` uses a hardcoded URL (WD14 SwinV2). If a user selects a different model (e.g. ConvNext) in settings but the file is missing on startup, the application will incorrectly download the SwinV2 model to the configured path. (Fixed: Implemented filename-based URL resolution).
 - [x] **Private/Blob URL Handling**: Implemented logic in browser extension to fetch image data (handling auth/blob URLs) and resize it before sending to backend as Data URI.
 - [x] **Firefox Extension ID Rotation**: Unsigned extensions loaded temporarily in Firefox are assigned a random ID on every run. This causes the Native Messaging manifest's `allowed_extensions` to mismatch with the actual runtime ID, making communication fail unless a static ID is defined in `manifest.json` (`browser_specific_settings.gecko.id`). (Fixed)
@@ -124,7 +125,7 @@
     - [x] Implement logic in extension to fetch image data for Blob/Private URLs and send as Data URI automatically.
 - [ ] **macOS Integration**:
     - [ ] Implement Context Menu registration for macOS (Finder extensions or Automator services).
-    - [x] Implement Native Messaging Host registration for macOS.
+    - [ ] Implement Native Messaging Host registration for macOS (Fix binary extension bug in registry.rs).
 - [x] **Firefox Support**:
     - [x] Verify manifest compatibility or create separate manifest for Firefox. (Implemented `generate_firefox_manifest_content` and registration logic)
 - [x] **Offline Installer**:
