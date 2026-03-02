@@ -344,7 +344,7 @@ pub async fn register_native_host(
         // 1. Get native_host path
         let resource_path = app
             .path()
-            .resolve("native_host", BaseDirectory::Resource)
+            .resolve("native_host.exe", BaseDirectory::Resource)
             .map_err(|e| format!("Failed to resolve resource path: {}", e))?;
 
         let native_host_path = if resource_path.exists() {
