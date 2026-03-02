@@ -74,7 +74,7 @@ fn handle_request(req: Request) -> Response {
                     Ok(decoded) => {
                         let timestamp = SystemTime::now()
                             .duration_since(UNIX_EPOCH)
-                            .unwrap()
+                            .unwrap_or_default()
                             .as_millis();
                         let temp_dir = env::temp_dir();
                         let file_name = format!("omni_tagger_{}.{}", timestamp, extension);
