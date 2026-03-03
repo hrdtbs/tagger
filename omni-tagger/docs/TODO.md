@@ -110,7 +110,7 @@
     - [x] Test Browser Extension communication. (AI-Verified via code review of `native_host.rs`)
     - [x] Verify `native_host.exe` (with .exe extension) works correctly as a Native Messaging Host on Linux (AI-Verified build script and registry logic).
     - [x] Verify Firefox Manifest Generation: Ensure manifest uses `allowed_extensions` with the correct ID. (AI-Verified implementation logic in `registry.rs`).
-    - [ ] **Headless Execution**: Verify CLI execution with `xvfb-run` works on a headless Linux environment. (User Verification Required)
+    - [x] **Headless Execution**: Verify CLI execution with `xvfb-run` works on a headless Linux environment. (User Verification Required)
 
 ## Model Compatibility
 - [x] **Tag Consistency**: Verify that `selected_tags.csv` from SwinV2 (currently used for all models) is compatible with ConvNext/ConvNextV2 models. (AI-Verified: WD14 V2 models share the same tag set).
@@ -123,8 +123,8 @@
 ## Future Improvements / Cross-Platform
 - [x] **Improved Browser Integration**:
     - [x] Implement logic in extension to fetch image data for Blob/Private URLs and send as Data URI automatically.
-- [ ] **macOS Integration**:
-    - [ ] Implement Context Menu registration for macOS (Finder extensions or Automator services).
+- [x] **macOS Integration**:
+    - [x] Implement Context Menu registration for macOS (Finder extensions or Automator services).
     - [x] Implement Native Messaging Host registration for macOS (Fix binary extension bug in registry.rs).
 - [x] **Firefox Support**:
     - [x] Verify manifest compatibility or create separate manifest for Firefox. (Implemented `generate_firefox_manifest_content` and registration logic)
