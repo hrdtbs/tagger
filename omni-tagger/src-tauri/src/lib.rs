@@ -67,7 +67,7 @@ pub fn run() {
                 .build(app)?;
 
             let config = load_config(app.handle());
-            *app.state::<AppState>().config.lock().unwrap() = config.clone();
+            *app.state::<AppState>().config.lock().expect("failed to lock config") = config.clone();
             let app_handle = app.handle().clone();
 
             // Initial Arg Check (First Instance)
@@ -109,7 +109,7 @@ pub fn run() {
                 }
 
                 let state = app_handle_gui.state::<AppState>();
-                let is_loaded = state.tagger.lock().unwrap().is_some();
+                let is_loaded = state.tagger.lock().expect("failed to lock tagger").is_some();
 
                 if !is_loaded {
                     match Tagger::new(
@@ -118,7 +118,7 @@ pub fn run() {
                         preprocessing_config,
                     ) {
                         Ok(tagger) => {
-                            *state.tagger.lock().unwrap() = Some(tagger);
+                            *state.tagger.lock().expect("failed to lock tagger") = Some(tagger);
                             println!("Tagger loaded successfully");
                             let _ = app_handle_gui.emit("tagger-loaded", ());
                         }
