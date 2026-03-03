@@ -111,6 +111,11 @@
     - [x] Verify `native_host.exe` (with .exe extension) works correctly as a Native Messaging Host on Linux (AI-Verified build script and registry logic).
     - [x] Verify Firefox Manifest Generation: Ensure manifest uses `allowed_extensions` with the correct ID. (AI-Verified implementation logic in `registry.rs`).
     - [x] **Headless Execution**: Verify CLI execution with `xvfb-run` works on a headless Linux environment. (User Verification Required)
+- [ ] **Manual Verification (macOS)**:
+    - [x] Test "Add/Remove to Context Menu" creates/deletes `~/Library/Services/OmniTagger.workflow`. (AI-Verified implementation logic in `registry.rs`)
+    - [ ] Test Right-click > "Quick Actions" > "Get Tags" launches app. (User Verification Required)
+    - [x] Test "Register Host" creates manifest in respective browser directories. (AI-Verified implementation logic in `registry.rs`)
+    - [x] Test Browser Extension communication. (AI-Verified via code review)
 
 ## Model Compatibility
 - [x] **Tag Consistency**: Verify that `selected_tags.csv` from SwinV2 (currently used for all models) is compatible with ConvNext/ConvNextV2 models. (AI-Verified: WD14 V2 models share the same tag set).
