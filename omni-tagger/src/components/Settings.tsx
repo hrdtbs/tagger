@@ -62,15 +62,16 @@ export default function Settings() {
       configRef.current = config;
   }, [config]);
 
-  const checkModel = useCallback(async (path: string) => {
+  const checkModel = useCallback((path: string) => {
       setModelStatus('checking');
-      try {
-          const exists = await invoke<boolean>('check_model_exists', { pathStr: path });
-          setModelStatus(exists ? 'present' : 'missing');
-      } catch (e) {
-          console.error("Failed to check model", e);
-          setModelStatus('missing');
-      }
+      invoke<boolean>('check_model_exists', { pathStr: path })
+          .then((exists) => {
+              setModelStatus(exists ? 'present' : 'missing');
+          })
+          .catch((e) => {
+              console.error("Failed to check model", e);
+              setModelStatus('missing');
+          });
   }, []);
 
   useEffect(() => {
@@ -101,13 +102,30 @@ export default function Settings() {
   }, [checkModel]);
 
   // Check model status when config.model_path changes
+  const modelPath = config?.model_path;
   useEffect(() => {
-    if (config) {
-        // eslint-disable-next-line
-        checkModel(config.model_path);
+    let ignore = false;
+    if (modelPath) {
+        queueMicrotask(() => {
+            if (!ignore) setModelStatus('checking');
+        });
+        invoke<boolean>('check_model_exists', { pathStr: modelPath })
+            .then((exists) => {
+                if (!ignore) {
+                    setModelStatus(exists ? 'present' : 'missing');
+                }
+            })
+            .catch((e) => {
+                if (!ignore) {
+                    console.error("Failed to check model", e);
+                    setModelStatus('missing');
+                }
+            });
     }
-    // eslint-disable-next-line
-  }, [config?.model_path, checkModel]);
+    return () => {
+        ignore = true;
+    };
+  }, [modelPath]);
 
   const downloadCurrentModel = async () => {
       if (!config) return;
