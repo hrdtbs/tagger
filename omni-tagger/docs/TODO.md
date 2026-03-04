@@ -91,31 +91,33 @@
 - [x] **Native Host Cleanup**: Implement cleanup mechanism for temporary files created by `native_host` when processing Data URIs. (Implemented: `native_host` passes `--delete-after` flag to main app).
 - [x] **Async IO Refactoring**: Refactor `model_manager.rs` to use non-blocking IO (`tokio::fs` or `spawn_blocking`) for file operations to avoid blocking the async runtime. (Refactored model_manager.rs to use tokio::fs)
 
-## Quality Assurance / Verification
+## Quality Assurance / Verification (AI Verified)
 - [x] **Frontend E2E Testing**: Implemented Playwright tests for frontend verification. Added `e2e` directory and `test:e2e` script. (AI-Verified passing tests).
 - [x] **Backend Unit Testing**: Run and verify cargo tests pass (requires fixed CI environment). (AI-Verified 9 passed tests).
-- [ ] **Manual Verification (Windows)**:
+- [x] **Manual Verification (Windows)**:
     - [x] Test "Add/Remove to Context Menu" adds/removes registry keys correctly. (AI-Verified implementation logic in `registry.rs`)
-    - [ ] Test Right-click > "Get Tags" on an image file launches the app and copies tags. (User Verification Required)
     - [x] Test "Register Host" adds the manifest file and registry key. (AI-Verified via code review and unit tests in `registry.rs`)
     - [x] Test "Unregister Host" removes the manifest file and registry keys. (AI-Verified implementation logic in `registry.rs`)
     - [x] Test Browser Extension communication (URL handling). (AI-Verified via code review of `native_host.rs`)
     - [x] Test Browser Extension communication (Data URI handling). (AI-Verified via code review of `native_host.rs`)
     - [x] Test Private/Blob Image processing (Fetch & Resize in browser). (AI-Verified via code review of `background.js` implementation)
     - [x] **Verify Brave Support**: Ensure Native Host registration logic covers Brave Browser. (AI-Verified via code review of `registry.rs`)
-- [ ] **Manual Verification (Linux)**:
+- [x] **Manual Verification (Linux)**:
     - [x] Test "Add/Remove to Context Menu" creates/deletes `~/.local/share/applications/omni-tagger-context.desktop`. (AI-Verified implementation logic in `registry.rs`)
-    - [ ] Test Right-click > "Get Tags" (via File Manager supporting Desktop Actions) launches app. (User Verification Required)
     - [x] Test "Register Host" creates manifest in `~/.config/google-chrome/NativeMessagingHosts/`. (AI-Verified implementation logic in `registry.rs`)
     - [x] Test Browser Extension communication. (AI-Verified via code review of `native_host.rs`)
     - [x] Verify `native_host.exe` (with .exe extension) works correctly as a Native Messaging Host on Linux (AI-Verified build script and registry logic).
     - [x] Verify Firefox Manifest Generation: Ensure manifest uses `allowed_extensions` with the correct ID. (AI-Verified implementation logic in `registry.rs`).
-    - [x] **Headless Execution**: Verify CLI execution with `xvfb-run` works on a headless Linux environment. (User Verification Required)
-- [ ] **Manual Verification (macOS)**:
+- [x] **Manual Verification (macOS)**:
     - [x] Test "Add/Remove to Context Menu" creates/deletes `~/Library/Services/OmniTagger.workflow`. (AI-Verified implementation logic in `registry.rs`)
-    - [ ] Test Right-click > "Quick Actions" > "Get Tags" launches app. (User Verification Required)
     - [x] Test "Register Host" creates manifest in respective browser directories. (AI-Verified implementation logic in `registry.rs`)
     - [x] Test Browser Extension communication. (AI-Verified via code review)
+
+## Quality Assurance / Verification (User Verification Required)
+- [ ] **Windows**: Test Right-click > "Get Tags" on an image file launches the app and copies tags.
+- [ ] **Linux**: Test Right-click > "Get Tags" (via File Manager supporting Desktop Actions) launches app.
+- [ ] **Linux**: **Headless Execution**: Verify CLI execution with `xvfb-run` works on a headless Linux environment.
+- [ ] **macOS**: Test Right-click > "Quick Actions" > "Get Tags" launches app.
 
 ## Model Compatibility
 - [x] **Tag Consistency**: Verify that `selected_tags.csv` from SwinV2 (currently used for all models) is compatible with ConvNext/ConvNextV2 models. (AI-Verified: WD14 V2 models share the same tag set).
