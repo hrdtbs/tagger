@@ -60,9 +60,11 @@
     - [x] Persist settings to disk (config file).
     - [x] Model Preset Selection (SwinV2, ConvNext, ConvNextV2).
     - [x] File picker for custom ONNX models.
+    - [x] **Target Browser**: Select target browser for Native Messaging.
     - [x] **Confidence Threshold adjustment**.
     - [x] **Tag Formatting (underscores)**.
     - [x] Tag exclusion list management.
+    - [x] **Advanced Model Settings**: Input Size, Color Format, Normalize.
     - [x] Add "Add/Remove to Context Menu" buttons (Support for removal added).
     - [x] Add "Install Browser Extension" instructions.
     - [x] **Unregister Native Host (UI)**: Add button to remove native host registration.
