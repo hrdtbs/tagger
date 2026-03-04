@@ -42,7 +42,7 @@
 - [x] **Native Host Support**:
     - [x] Implement `native_host` build and bundling for Linux.
     - [x] Implement `register_native_host` logic for Linux (Manifest in `~/.config/...`).
-    - [x] **Snap/Flatpak Support**: Implement Native Messaging Host manifest registration for sandboxed browsers (Snap/Flatpak), as standard `~/.mozilla` and `~/.config` paths are isolated and not read. (Implemented in registry.rs)
+    - [ ] **Snap/Flatpak Support**: Implement Native Messaging Host manifest registration for sandboxed browsers (Snap/Flatpak), as standard `~/.mozilla` and `~/.config` paths are isolated and not read. (Implemented manifest placement in registry.rs, but actual execution is blocked by sandbox constraints. Requires a wrapper script using `flatpak-spawn --host` or Snap plug configuration.)
 - [x] **Context Menu Support**:
     - [x] Implement context menu registration for Linux (.desktop actions in `~/.local/share/applications`).
 
@@ -118,6 +118,7 @@
 ## Quality Assurance / Verification (User Verification Required)
 - [ ] **Windows**: Test Right-click > "Get Tags" on an image file launches the app and copies tags.
 - [ ] **Linux**: Test Right-click > "Get Tags" (via File Manager supporting Desktop Actions) launches app.
+- [ ] **Linux**: Test clipboard and notification Wayland compatibility.
 - [ ] **Linux**: **Headless Execution**: Verify CLI execution with `xvfb-run` works on a headless Linux environment.
 - [ ] **macOS**: Test Right-click > "Quick Actions" > "Get Tags" launches app.
 
@@ -141,3 +142,7 @@
     - [x] Create an installer variant that bundles the default models to avoid download requirement.
 - [x] **Model Flexibility**:
     - [x] Implement model-specific preprocessing configuration (e.g. input size, normalization) to support a wider range of ONNX models.
+- [ ] **Headless Output**:
+    - [ ] Implement a CLI flag (e.g., `--stdout`) to print tags to standard output instead of the clipboard, bypassing Xvfb clipboard isolation.
+- [ ] **GPU Acceleration**:
+    - [ ] Implement dynamic downloading of ONNX Execution Providers (CUDA/DirectML) to enable GPU inference without violating the 100MB initial bundle size limit.
