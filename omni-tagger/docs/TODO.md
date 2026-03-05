@@ -136,6 +136,8 @@
 - [x] **macOS Integration**:
     - [x] Implement Context Menu registration for macOS (Finder extensions or Automator services).
     - [x] Implement Native Messaging Host registration for macOS (Fix binary extension bug in registry.rs).
+- [ ] **Safari Extension Support**:
+    - [ ] Explore providing a Safari App Extension (via Xcode) for full macOS browser coverage.
 - [x] **Firefox Support**:
     - [x] Verify manifest compatibility or create separate manifest for Firefox. (Implemented `generate_firefox_manifest_content` and registration logic)
 - [x] **Offline Installer**:
@@ -146,3 +148,10 @@
     - [ ] Implement a CLI flag (e.g., `--stdout`) to print tags to standard output instead of the clipboard, bypassing Xvfb clipboard isolation.
 - [ ] **GPU Acceleration**:
     - [ ] Implement dynamic downloading of ONNX Execution Providers (CUDA/DirectML) to enable GPU inference without violating the 100MB initial bundle size limit.
+
+## Pending Bug Fixes & Architecture Issues
+- [ ] **Concurrency Control (Model Downloads)**: Implement a mutex or lock file mechanism in `check_and_download_models` to prevent file corruption when multiple requests (e.g., multiple selected files) trigger downloads simultaneously on first run.
+- [ ] **Batch Processing / Queueing**: Handle multiple file selections gracefully in the Single Instance handler to prevent clipboard overwriting. Instead of parallel execution, requests should be queued, or tags for multiple files should be combined/formatted logically.
+- [ ] **Security (SSRF Prevention)**: Implement strict URL validation for `--process-url` and Native Messaging requests. Only allow `http` and `https` schemes, and reject localhost/private network IPs.
+- [ ] **Security (Payload Limits)**: Implement maximum payload/image size checks in `native_host.rs` and the image processing pipeline to prevent Out-Of-Memory (OOM) crashes from excessively large inputs.
+- [ ] **Uninstaller / Cleanup Scripts**: Provide a dedicated uninstaller or cleanup script (or hook into Tauri's uninstall process where possible) to guarantee removal of leftover Registry keys, `.desktop` files, `.wflow` scripts, and browser manifests.
