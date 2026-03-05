@@ -496,10 +496,32 @@ pub async fn register_native_host(
             return Err(format!("native_host not found at {:?}", native_host_path));
         }
 
+        // Generate wrapper script for Flatpak/Snap support
+        let app_data_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
+        if !app_data_dir.exists() {
+            fs::create_dir_all(&app_data_dir).map_err(|e| e.to_string())?;
+        }
+        let wrapper_path = app_data_dir.join("native-host-wrapper.sh");
+
+        let wrapper_content = format!(
+            "#!/bin/sh\nif command -v flatpak-spawn >/dev/null 2>&1; then\n    exec flatpak-spawn --host \"{}\" \"$@\"\nelse\n    exec \"{}\" \"$@\"\nfi\n",
+            native_host_path.to_str().ok_or("Invalid path")?,
+            native_host_path.to_str().ok_or("Invalid path")?
+        );
+
+        fs::write(&wrapper_path, wrapper_content).map_err(|e| format!("Failed to write wrapper script: {}", e))?;
+
+        use std::os::unix::fs::PermissionsExt;
+        let mut perms = fs::metadata(&wrapper_path).map_err(|e| e.to_string())?.permissions();
+        perms.set_mode(0o755);
+        fs::set_permissions(&wrapper_path, perms).map_err(|e| e.to_string())?;
+
+        let executable_path_str = wrapper_path.to_str().ok_or("Invalid wrapper path")?;
+
         if browser_type == "firefox" {
             // Firefox Logic
             let manifest_content = generate_firefox_manifest_content(
-                native_host_path.to_str().ok_or("Invalid path")?,
+                executable_path_str,
                 &extension_id,
             );
 
@@ -531,7 +553,7 @@ pub async fn register_native_host(
         } else {
             // Chromium Logic
             let manifest_content = generate_manifest_content(
-                native_host_path.to_str().ok_or("Invalid path")?,
+                executable_path_str,
                 &extension_id,
             );
 
