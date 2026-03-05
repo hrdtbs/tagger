@@ -36,7 +36,7 @@
 |---|---|---|
 | フレームワーク | Tauri (v2) | Rust製の軽量コア + Webフロントエンド |
 | 言語 | Rust / TypeScript | 高速な画像処理と安全なメモリ管理 |
-| 推論エンジン | ONNX Runtime (ort) | CPU/GPUを活用したクロスプラットフォーム推論 |
+| 推論エンジン | ONNX Runtime (ort) | CPU/GPUを活用したクロスプラットフォーム推論（※100MBのサイズ制限を満たすため、標準ではCPU実行のみ。GPU Execution Providerは動的ダウンロード等での対応が必要） |
 | 画像処理 | image-rs | 画像の読み込みと前処理 |
 | UIライブラリ | React + Tailwind CSS | 設定画面の構築 |
 | 連携技術 | Native Messaging | ブラウザ拡張機能との通信 |
@@ -103,7 +103,7 @@
 *   Native Host Manifest (Brave): `~/Library/Application Support/BraveSoftware/Brave-Browser/NativeMessagingHosts/com.omnitagger.host.json`
 *   Native Host Manifest (Firefox): `~/Library/Application Support/Mozilla/NativeMessagingHosts/com.omnitagger.host.json`
 
-**注意**: Linux環境におけるSnapやFlatpakでインストールされたサンドボックス化されたブラウザ（UbuntuのデフォルトFirefoxなど）では、上記の標準的な設定パス（`~/.mozilla/...`など）にあるNative Messaging Hostマニフェストを読み込むことができず、連携が根本的に破綻します。これに対応するためには、SnapやFlatpak固有のディレクトリ（例: `~/snap/firefox/current/.mozilla/native-messaging-hosts/` や Flatpakのパーミッション設定）へのマニフェスト配置を考慮する必要があります。
+**注意**: Linux環境におけるSnapやFlatpakでインストールされたサンドボックス化されたブラウザ（UbuntuのデフォルトFirefoxなど）では、上記の標準的な設定パス（`~/.mozilla/...`など）にあるNative Messaging Hostマニフェストを読み込むことができず、連携が根本的に破綻します。これに対応するためには、SnapやFlatpak固有のディレクトリ（例: `~/snap/firefox/current/.mozilla/native-messaging-hosts/` や Flatpakのパーミッション設定）へのマニフェスト配置を考慮する必要があります。さらに、マニフェストが読み込めたとしても、サンドボックスの隔離仕様により任意のホストバイナリ（`native_host.exe`）の直接実行はブロックされます。Flatpak環境ではラッパースクリプト（`flatpak-spawn --host`）を介した実行、Snap環境では特定のplugインターフェースを通じた実行などの根本的な回避策が追加で必要となります。
 
 **注意**: `url` フィールドで画像URLを送信する場合、バックエンド側で再ダウンロードを行うため、Cookie認証が必要な画像や `blob:` URL は処理できません。その場合は `data` フィールド（Base64）を使用してください。
 
@@ -145,3 +145,5 @@
 ```bash
 xvfb-run -a ./omni-tagger <image_path>
 ```
+
+**警告**: `xvfb-run` を使用して実行した場合、Tauri/GTKがアクセスするクリップボードはXvfbによって作成された「隔離された仮想クリップボード」となります。そのため、処理完了後にホストOSのクリップボード（WaylandやX11）に生成されたタグが反映されません。ヘッドレス環境で出力を取得するには、クリップボード同期ツールを併用するか、標準出力 (`stdout`) を利用する仕組み（現在未実装）が必要になります。
