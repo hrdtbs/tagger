@@ -150,6 +150,8 @@
 ### 7.4 Security Considerations
 1. **SSRF (Server-Side Request Forgery)**: `--process-url` および Native Messaging経由でのURL処理において、受け取ったURLの検証（ローカルIPのブロック、スキームの制限等）が行われていません。悪意のある拡張機能やコマンド呼び出しによって、ローカルネットワーク内のリソースに対する意図しないアクセス(SSRF)を引き起こすリスクがあります。
 2. **OOM (Out Of Memory) / Payload Limits**: Native MessagingでBase64データを受け取る際、現状メッセージサイズや画像サイズの厳格な上限チェックが存在しないため、巨大な画像データを送りつけられることでメモリ枯渇を引き起こす可能性があります。
+   * また、`--process-url` で画像をダウンロードする際（`reqwest`）にも、レスポンスサイズの制限がないため、巨大なファイル（数十GBのダミーファイル等）をダウンロードさせられることでメモリ枯渇（OOM）を引き起こす脆弱性が存在します。
+3. **Arbitrary File Deletion**: `--delete-after` 引数は本来Native Hostの一時ファイル削除用に設けられていますが、CLIから任意のファイルパスを指定して実行された場合、対象のファイルが削除される権限昇格・任意ファイル削除の脆弱性が存在します。
 
 ### 7.5 Linux Headless Execution
 **重要**: OmniTaggerはTauri v2 (GTK) に依存しているため、CLIモード（`--process-url` や ファイルパス引数）での実行であっても、ディスプレイサーバーへの接続が必要です。
@@ -166,5 +168,7 @@ xvfb-run -a ./omni-tagger <image_path>
 現在のアーキテクチャおよび実装には、以下の既知の制限と課題が存在します。
 
 * **SSRF (Server-Side Request Forgery) Vulnerability**: `url` フィールドを介した画像フェッチ機能 (`process_image_url`) において、送信されたURLのバリデーションが不十分です。これにより、悪意のあるブラウザ拡張機能やプロセスがローカルネットワーク上のリソース（例: `http://localhost:...`）や内部APIをアプリケーション経由でフェッチすることが可能になるSSR攻撃のリスクが存在します。
+* **HTTP Download OOM Vulnerability**: `process_image_url` で `reqwest` を用いて画像をダウンロード・メモリ展開する際、コンテンツ長の制限がないため、巨大なファイルや無限ストリームによってプロセスが OOM (Out Of Memory) でクラッシュする脆弱性が存在します。
+* **Arbitrary File Deletion Vulnerability**: `--delete-after` 引数を用いたファイル処理は対象パスの検証を行わないため、悪意のあるプロセスがこの引数を利用してユーザー権限でアクセス可能な任意のファイルを削除できてしまう脆弱性が存在します。
 * **Clipboard Overwrite Race Condition**: 複数ファイルの一括処理や連続したURLリクエストが発生した場合、複数の推論スレッドが並列に起動します。各スレッドは処理が完了した順にクリップボードを上書きするため、ユーザーが最初の結果をペーストする前に後続の結果によってクリップボードの内容が失われる競合状態（Race Condition）が発生します。
 * **Concurrent Model Download Corruption**: 初回起動時やモデル設定変更直後においてモデルファイルが存在しない場合、複数のリクエストが同時に `check_and_download_models` を呼び出すと、異なるスレッドから同じファイルパスに対して同時にダウンロード・書き込み処理が実行されます。これにより、ダウンロードされたモデルファイルが破損し、後続の推論処理がエラーとなる可能性があります。
