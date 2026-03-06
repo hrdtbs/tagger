@@ -69,15 +69,87 @@ where
 }
 
 async fn process_image_url(app: &AppHandle, url: String) -> Result<()> {
+    // Validate URL to prevent SSRF
+    let parsed_url = url::Url::parse(&url).context("Invalid URL format")?;
+
+    // 1. Check Scheme (only http/https)
+    let scheme = parsed_url.scheme();
+    if scheme != "http" && scheme != "https" {
+        return Err(anyhow::anyhow!("Invalid URL scheme. Only HTTP and HTTPS are allowed."));
+    }
+
+    // 2. Resolve and check Host (Reject localhost, loopback, private networks)
+    let host_str = parsed_url.host_str().ok_or_else(|| anyhow::anyhow!("URL has no host"))?;
+
+    // Simple blocklist for common local/private hostnames
+    let lower_host = host_str.to_lowercase();
+    if lower_host == "localhost" || lower_host.ends_with(".localhost") || lower_host == "broadcasthost" {
+        return Err(anyhow::anyhow!("URL resolves to a restricted local hostname"));
+    }
+
+    // Resolve IPs and check for private/loopback/unspecified
+    use std::net::ToSocketAddrs;
+
+    // If it's an IP or a hostname, we try to resolve it to an IP address.
+    // We add a dummy port (80) because ToSocketAddrs requires it, even though we just want the IP.
+    let addr_str = format!("{}:80", host_str);
+
+    // Note: This relies on the system DNS resolver.
+    if let Ok(mut addrs) = addr_str.to_socket_addrs() {
+        if let Some(addr) = addrs.next() {
+            let ip = addr.ip();
+            if ip.is_loopback() || ip.is_unspecified() || ip.is_multicast() {
+                 return Err(anyhow::anyhow!("URL resolves to a restricted IP address (loopback/unspecified/multicast)"));
+            }
+
+            // Check for private IPv4
+            if let std::net::IpAddr::V4(ipv4) = ip {
+                if ipv4.is_private() || ipv4.is_link_local() {
+                     return Err(anyhow::anyhow!("URL resolves to a restricted private IPv4 address"));
+                }
+            }
+            // Check for private IPv6 (Unique Local Addresses fc00::/7)
+            if let std::net::IpAddr::V6(ipv6) = ip {
+                if (ipv6.segments()[0] & 0xfe00) == 0xfc00 {
+                     return Err(anyhow::anyhow!("URL resolves to a restricted private IPv6 address"));
+                }
+            }
+        }
+    } else {
+        // If it can't resolve, reqwest will also fail, but we don't necessarily want to block it here
+        // if it's just a temporary DNS issue. However, for strict SSRF, failing closed is safer.
+        return Err(anyhow::anyhow!("Failed to resolve hostname for URL validation"));
+    }
+
     // Download image
-    // Using reqwest
-    let client = reqwest::Client::new();
-    let resp = client
+    // Using reqwest with redirects disabled to prevent SSRF via redirect to localhost
+    let client = reqwest::Client::builder()
+        .redirect(reqwest::redirect::Policy::none())
+        .build()
+        .context("Failed to build client")?;
+    let mut resp = client
         .get(&url)
         .send()
         .await
         .context("Failed to send request")?;
-    let bytes = resp.bytes().await.context("Failed to get bytes")?;
+
+    // Check content length header if available
+    const MAX_DOWNLOAD_SIZE: u64 = 20 * 1024 * 1024; // 20 MB limit
+    if let Some(content_length) = resp.content_length() {
+        if content_length > MAX_DOWNLOAD_SIZE {
+            return Err(anyhow::anyhow!("File size {} exceeds maximum allowed size of {} bytes", content_length, MAX_DOWNLOAD_SIZE));
+        }
+    }
+
+    // Stream download and enforce size limit manually
+    let mut bytes = Vec::new();
+    while let Some(chunk) = resp.chunk().await.context("Failed to get chunk")? {
+        if (bytes.len() + chunk.len()) as u64 > MAX_DOWNLOAD_SIZE {
+            return Err(anyhow::anyhow!("File size exceeds maximum allowed size of {} bytes", MAX_DOWNLOAD_SIZE));
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+
     let img = image::load_from_memory(&bytes).context("Failed to load image from URL")?;
 
     run_inference_and_notify(app, img).await
