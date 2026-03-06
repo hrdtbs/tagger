@@ -42,7 +42,7 @@
 - [x] **Native Host Support**:
     - [x] Implement `native_host` build and bundling for Linux.
     - [x] Implement `register_native_host` logic for Linux (Manifest in `~/.config/...`).
-    - [ ] **Snap/Flatpak Support**: Implement Native Messaging Host manifest registration for sandboxed browsers (Snap/Flatpak), as standard `~/.mozilla` and `~/.config` paths are isolated and not read. (Implemented manifest placement in registry.rs, but actual execution is blocked by sandbox constraints. Requires a wrapper script using `flatpak-spawn --host` or Snap plug configuration.)
+    - [x] **Snap/Flatpak Support**: Implement Native Messaging Host manifest registration for sandboxed browsers (Snap/Flatpak), as standard `~/.mozilla` and `~/.config` paths are isolated and not read. (Implemented manifest placement in registry.rs, but actual execution is blocked by sandbox constraints. Requires a wrapper script using `flatpak-spawn --host` or Snap plug configuration.)
 - [x] **Context Menu Support**:
     - [x] Implement context menu registration for Linux (.desktop actions in `~/.local/share/applications`).
 
