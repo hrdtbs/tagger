@@ -238,14 +238,14 @@ mod tests {
     use std::io::Write;
 
     #[tokio::test]
-    async fn test_process_inputs_with_actions_delete_after() {
+    async fn test_process_inputs_with_actions_delete_after() -> Result<(), Box<dyn std::error::Error>> {
         let temp_dir = std::env::temp_dir();
         let file_path = temp_dir.join("omni_tagger_test_delete.tmp");
 
         // Create a dummy file
         {
-            let mut file = fs::File::create(&file_path).unwrap();
-            writeln!(file, "dummy content").unwrap();
+            let mut file = fs::File::create(&file_path)?;
+            writeln!(file, "dummy content")?;
         }
 
         assert!(file_path.exists());
@@ -264,17 +264,18 @@ mod tests {
             !file_path.exists(),
             "File should be deleted after processing"
         );
+        Ok(())
     }
 
     #[tokio::test]
-    async fn test_process_inputs_with_actions_no_delete() {
+    async fn test_process_inputs_with_actions_no_delete() -> Result<(), Box<dyn std::error::Error>> {
         let temp_dir = std::env::temp_dir();
         let file_path = temp_dir.join("omni_tagger_test_keep.tmp");
 
         // Create a dummy file
         {
-            let mut file = fs::File::create(&file_path).unwrap();
-            writeln!(file, "dummy content").unwrap();
+            let mut file = fs::File::create(&file_path)?;
+            writeln!(file, "dummy content")?;
         }
 
         assert!(file_path.exists());
@@ -291,6 +292,7 @@ mod tests {
         assert!(file_path.exists(), "File should NOT be deleted");
 
         // Cleanup
-        fs::remove_file(file_path).unwrap();
+        fs::remove_file(file_path)?;
+        Ok(())
     }
 }

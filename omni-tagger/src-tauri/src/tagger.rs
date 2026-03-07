@@ -28,9 +28,12 @@ impl Tagger {
         }
 
         // Initialize ORT session
-        let session = Session::builder()?
-            .with_optimization_level(GraphOptimizationLevel::Level3)?
-            .with_intra_threads(4)?
+        let session = Session::builder()
+            .map_err(|e| anyhow::anyhow!("Failed to build session: {:?}", e))?
+            .with_optimization_level(GraphOptimizationLevel::Level3)
+            .map_err(|e| anyhow::anyhow!("Failed to set optimization level: {:?}", e))?
+            .with_intra_threads(4)
+            .map_err(|e| anyhow::anyhow!("Failed to set intra threads: {:?}", e))?
             .commit_from_file(model_path)
             .context("Failed to load model")?;
 
@@ -160,7 +163,7 @@ mod tests {
 
     #[tokio::test]
     #[ignore] // Requires model files and runtime environment
-    async fn test_inference_performance() {
+    async fn test_inference_performance() -> Result<(), Box<dyn std::error::Error>> {
         use std::time::Instant;
 
         // Paths should be adjusted to where models are expected during test
@@ -170,7 +173,7 @@ mod tests {
 
         if !std::path::Path::new(model_path).exists() || !std::path::Path::new(tags_path).exists() {
             println!("Skipping performance test: Model files not found.");
-            return;
+            return Ok(());
         }
 
         let config = PreprocessConfig {
@@ -178,16 +181,16 @@ mod tests {
             format: "bgr".to_string(),
             normalize: false,
         };
-        let mut tagger = Tagger::new(model_path, tags_path, config).expect("Failed to load tagger");
+        let mut tagger = Tagger::new(model_path, tags_path, config)?;
 
         // Create a dummy image
         let img = DynamicImage::ImageRgb8(RgbImage::new(1000, 1000)); // Large image to test resizing too
 
         // Warmup (optional, but good for accurate inference timing)
-        let _ = tagger.infer(&img, 0.5).unwrap();
+        let _ = tagger.infer(&img, 0.5)?;
 
         let start = Instant::now();
-        let _ = tagger.infer(&img, 0.5).unwrap();
+        let _ = tagger.infer(&img, 0.5)?;
         let duration = start.elapsed();
 
         println!("Inference time: {:?}", duration);
@@ -198,5 +201,6 @@ mod tests {
             "Inference took too long: {:?}",
             duration
         );
+        Ok(())
     }
 }
