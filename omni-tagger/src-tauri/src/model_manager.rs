@@ -34,11 +34,18 @@ fn get_model_url(path: &Path) -> Option<&'static str> {
     }
 }
 
+use tauri::Manager;
+use crate::state::AppState;
+
 pub async fn check_and_download_models(
     app: &AppHandle,
     model_path: &Path,
     tags_path: &Path,
 ) -> Result<()> {
+    // Acquire the download lock to prevent concurrent downloads
+    let state = app.state::<AppState>();
+    let _lock = state.download_lock.lock().await;
+
     if !model_path.exists() {
         if let Some(url) = get_model_url(model_path) {
             download_file(app, url, model_path).await?;

@@ -10,6 +10,8 @@ use crate::processor::process_inputs;
 use crate::state::AppState;
 use crate::tagger::Tagger;
 use std::sync::Mutex;
+use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use tauri::{
     menu::{Menu, MenuItem},
     tray::TrayIconBuilder,
@@ -18,31 +20,27 @@ use tauri::{
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    let (tx, mut rx) = tokio::sync::mpsc::unbounded_channel::<Vec<String>>();
+    let active_tasks = Arc::new(AtomicUsize::new(0));
+    let active_tasks_clone = Arc::clone(&active_tasks);
+
     tauri::Builder::default()
         .manage(AppState {
             tagger: Mutex::new(None),
             config: Mutex::new(AppConfig::default()),
+            download_lock: tokio::sync::Mutex::new(()),
+            input_tx: tx,
+            active_tasks,
         })
         .plugin(tauri_plugin_opener::init())
         .plugin(tauri_plugin_shell::init())
         .plugin(tauri_plugin_dialog::init())
         .plugin(tauri_plugin_notification::init())
-        .plugin(tauri_plugin_single_instance::init(|app, argv, _cwd| {
+        .plugin(tauri_plugin_single_instance::init(move |app, argv, _cwd| {
             println!("Single Instance: {:?}", argv);
-            let app_handle = app.clone();
-            let args = argv.clone();
-            tauri::async_runtime::spawn(async move {
-                if let Err(e) = process_inputs(&app_handle, args).await {
-                    eprintln!("Error processing inputs: {}", e);
-                    use tauri_plugin_notification::NotificationExt;
-                    let _ = app_handle
-                        .notification()
-                        .builder()
-                        .title("Error")
-                        .body(format!("Processing failed: {}", e))
-                        .show();
-                }
-            });
+            let state = app.state::<AppState>();
+            state.active_tasks.fetch_add(1, Ordering::SeqCst);
+            let _ = state.input_tx.send(argv);
         }))
         .setup(|app| {
             let quit_i = MenuItem::with_id(app, "quit", "Quit", true, None::<&str>)?;
@@ -70,16 +68,41 @@ pub fn run() {
             *app.state::<AppState>().config.lock().expect("failed to lock config") = config.clone();
             let app_handle = app.handle().clone();
 
+            // Setup background worker for queue processing
+            let app_handle_worker = app_handle.clone();
+            tauri::async_runtime::spawn(async move {
+                while let Some(args) = rx.recv().await {
+                    if let Err(e) = process_inputs(&app_handle_worker, args).await {
+                        eprintln!("Error processing inputs: {}", e);
+                        use tauri_plugin_notification::NotificationExt;
+                        let _ = app_handle_worker
+                            .notification()
+                            .builder()
+                            .title("Error")
+                            .body(format!("Processing failed: {}", e))
+                            .show();
+                    }
+
+                    let remaining = active_tasks_clone.fetch_sub(1, Ordering::SeqCst) - 1;
+                    if remaining == 0 {
+                        // In CLI mode (initial args > 1), we exit when queue is empty
+                        // But wait, the app might be kept alive if it's the first instance
+                        // We will handle CLI exit separately if needed, or exit here if
+                        // there was no GUI window intended.
+                        let has_args = std::env::args().len() > 1;
+                        if has_args {
+                            app_handle_worker.exit(0);
+                        }
+                    }
+                }
+            });
+
             // Initial Arg Check (First Instance)
             let args: Vec<String> = std::env::args().collect();
             if args.len() > 1 {
-                let args_clone = args.clone();
-                tauri::async_runtime::spawn(async move {
-                    if let Err(e) = process_inputs(&app_handle, args_clone).await {
-                        eprintln!("Error processing inputs: {}", e);
-                    }
-                    app_handle.exit(0);
-                });
+                let state = app.state::<AppState>();
+                state.active_tasks.fetch_add(1, Ordering::SeqCst);
+                let _ = state.input_tx.send(args);
                 return Ok(());
             }
 

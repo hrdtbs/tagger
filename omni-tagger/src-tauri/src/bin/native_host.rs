@@ -28,6 +28,26 @@ fn main() -> io::Result<()> {
             Err(e) => return Err(e),
         };
 
+        // Enforce maximum payload size to prevent OOM (e.g., 20 MB)
+        const MAX_PAYLOAD_SIZE: usize = 20 * 1024 * 1024;
+        if length > MAX_PAYLOAD_SIZE {
+            let response = Response {
+                status: "error".to_string(),
+                message: format!("Payload size {} exceeds maximum allowed size of {}", length, MAX_PAYLOAD_SIZE),
+            };
+            send_response(&response)?;
+
+            // Consume the oversized payload so the stream isn't left in a bad state
+            let mut remaining = length;
+            let mut sink = [0u8; 8192];
+            while remaining > 0 {
+                let to_read = std::cmp::min(remaining, sink.len());
+                io::stdin().read_exact(&mut sink[..to_read])?;
+                remaining -= to_read;
+            }
+            continue;
+        }
+
         // Read message body
         let mut buffer = vec![0u8; length];
         io::stdin().read_exact(&mut buffer)?;
