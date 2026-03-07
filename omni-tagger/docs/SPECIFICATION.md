@@ -150,6 +150,7 @@
 ### 7.4 Security Considerations
 1. **SSRF (Server-Side Request Forgery)**: `--process-url` および Native Messaging経由でのURL処理において、受け取ったURLの検証（ローカルIPのブロック、スキームの制限等）が行われていません。悪意のある拡張機能やコマンド呼び出しによって、ローカルネットワーク内のリソースに対する意図しないアクセス(SSRF)を引き起こすリスクがあります。
 2. **OOM (Out Of Memory) / Payload Limits**: Native MessagingでBase64データを受け取る際、現状メッセージサイズや画像サイズの厳格な上限チェックが存在しないため、巨大な画像データを送りつけられることでメモリ枯渇を引き起こす可能性があります。
+3. **Arbitrary File Deletion**: `--delete-after` フラグは現状、指定された任意のファイルパスを削除することが可能です。これにより、悪意のあるプロセスが任意のファイルを削除する脆弱性が存在します。一時ファイル（特定のプレフィックスを持つもの）のみを削除対象とする制限が必要です。
 
 ### 7.5 Linux Headless Execution
 **重要**: OmniTaggerはTauri v2 (GTK) に依存しているため、CLIモード（`--process-url` や ファイルパス引数）での実行であっても、ディスプレイサーバーへの接続が必要です。
@@ -168,3 +169,5 @@ xvfb-run -a ./omni-tagger <image_path>
 * **SSRF (Server-Side Request Forgery) Vulnerability**: `url` フィールドを介した画像フェッチ機能 (`process_image_url`) において、送信されたURLのバリデーションが不十分です。これにより、悪意のあるブラウザ拡張機能やプロセスがローカルネットワーク上のリソース（例: `http://localhost:...`）や内部APIをアプリケーション経由でフェッチすることが可能になるSSR攻撃のリスクが存在します。
 * **Clipboard Overwrite Race Condition**: 複数ファイルの一括処理や連続したURLリクエストが発生した場合、複数の推論スレッドが並列に起動します。各スレッドは処理が完了した順にクリップボードを上書きするため、ユーザーが最初の結果をペーストする前に後続の結果によってクリップボードの内容が失われる競合状態（Race Condition）が発生します。
 * **Concurrent Model Download Corruption**: 初回起動時やモデル設定変更直後においてモデルファイルが存在しない場合、複数のリクエストが同時に `check_and_download_models` を呼び出すと、異なるスレッドから同じファイルパスに対して同時にダウンロード・書き込み処理が実行されます。これにより、ダウンロードされたモデルファイルが破損し、後続の推論処理がエラーとなる可能性があります。
+* **Arbitrary File Deletion Vulnerability**: `--delete-after` CLIフラグを使用すると、指定した任意のファイルを削除できてしまう脆弱性があります。
+* **Linux Sandboxed Browser Execution Block**: SnapやFlatpakでインストールされたサンドボックス化されたブラウザ環境では、標準のNative Messagingマニフェストパスへのアクセスや、任意のホストバイナリ（`native_host.exe`）の直接実行がブロックされるため、拡張機能との連携が機能しません。
