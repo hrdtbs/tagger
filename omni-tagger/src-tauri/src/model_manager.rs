@@ -114,24 +114,25 @@ mod tests {
     use super::*;
 
     #[tokio::test]
-    async fn test_check_file_exists() {
+    async fn test_check_file_exists() -> Result<(), Box<dyn std::error::Error>> {
         let temp_dir = std::env::temp_dir();
         let file_path = temp_dir.join("omni_tagger_test_model.onnx");
 
         // Ensure file does not exist initially
         if file_path.exists() {
-            tokio::fs::remove_file(&file_path).await.unwrap();
+            tokio::fs::remove_file(&file_path).await?;
         }
 
         assert!(!check_file_exists(&file_path));
 
         // Create dummy file
-        tokio::fs::write(&file_path, "dummy content").await.unwrap();
+        tokio::fs::write(&file_path, "dummy content").await?;
 
         assert!(check_file_exists(&file_path));
 
         // Clean up
-        tokio::fs::remove_file(file_path).await.unwrap();
+        tokio::fs::remove_file(file_path).await?;
+        Ok(())
     }
 
     #[test]
