@@ -153,6 +153,7 @@
     - [ ] Implement dynamic downloading of ONNX Execution Providers (CUDA/DirectML) to enable GPU inference without violating the 100MB initial bundle size limit.
 
 ## Pending Bug Fixes & Architecture Issues
+- [ ] **Security (Arbitrary File Deletion)**: The `--delete-after` CLI flag currently allows arbitrary file deletion. It must be restricted to operate only on temporary files with a specific prefix (e.g., `omni_tagger_`) to prevent malicious use.
 - [x] **Concurrency Control (Model Downloads)**: Implement a mutex or lock file mechanism in `check_and_download_models` to prevent file corruption when multiple requests (e.g., multiple selected files) trigger downloads simultaneously on first run. (Fixed)
 - [x] **Batch Processing / Queueing**: Handle multiple file selections gracefully in the Single Instance handler to prevent clipboard overwriting. Instead of parallel execution, requests should be queued, or tags for multiple files should be combined/formatted logically. (Fixed)
 - [x] **Security (SSRF Prevention)**: Implement strict URL validation for `--process-url` and Native Messaging requests. Only allow `http` and `https` schemes, and reject localhost/private network IPs. (Fixed)
